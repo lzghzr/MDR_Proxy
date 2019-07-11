@@ -1,0 +1,17 @@
+{
+  "name": "mdrproxy",
+  "version": "0.0.1",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^12.6.1",
+    "typescript": "^3.5.3"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node mdrproxy.js"
+  },
+  "author": "lzghzr",
+  "license": "MIT",
+  "description": ""
+}
