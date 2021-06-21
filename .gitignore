@@ -38,5 +38,7 @@ jspm_packages
 
 # Typings directories
 custom/*.bin
-temp/
+security/*.pem
+.vscode
+temp
 *.js

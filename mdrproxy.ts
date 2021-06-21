@@ -1,16 +1,20 @@
 import net from 'net'
 import zlib from 'zlib'
 import http from 'http'
-import { parse } from 'url'
+import https from 'https'
 import { promisify } from 'util'
-import { readdir, readFile } from 'fs'
+import { existsSync, readdir, readFile } from 'fs'
 import { createInterface } from 'readline'
 import { createHash, createCipheriv, createDecipheriv } from 'crypto'
+
+const hasKey = existsSync(`${__dirname}/security/mdrproxy-key.pem`)
+const hasCert = existsSync(`${__dirname}/security/mdrproxy-cert.pem`)
+if (!hasKey || !hasCert) throw '未找到证书文件'
 
 const FSreadFile = promisify(readFile)
 const FSreaddir = promisify(readdir)
 // 自定义的升级信息
-const infoXML = `<?xml version="1.0" encoding="UTF-8"?><InformationFile LastUpdate="2019-05-01T00:00:00Z" Noop="false" Version="1.0">
+const infoXML = `<?xml version="1.0" encoding="UTF-8"?><InformationFile LastUpdate="2021-05-01T00:00:00Z" Noop="false" Version="1.0">
 <ControlConditions DefaultServiceStatus="open" DefaultVariance="0"/>
 <ApplyConditions>
     <ApplyCondition ApplyOrder="1" Force="false">
@@ -20,11 +24,11 @@ const infoXML = `<?xml version="1.0" encoding="UTF-8"?><InformationFile LastUpda
             <Rule Type="System" Key="FirmwareVersion" Value="0" Operator="NotEqual"/>
         </Rules>
         <Distributions>
-            <Distribution ID="FW" InstallParams="" InstallType="binary" MAC="{FWsha1}" Size="{FWlength}" Type="" URI="http://info.update.sony.net/custom_fw.bin" Version="1"/>
-            <Distribution ID="Disclaimer" InstallParams="" InstallType="notice" MAC="{Disclaimersha1}" Size="{Disclaimerlength}" Type="" URI="http://info.update.sony.net/custom_disclaimer.xml" Version="1"/>
+            <Distribution ID="FW" InstallParams="" InstallType="binary" MAC="{FWsha1}" Size="{FWlength}" Type="" URI="https://info.update.sony.net/custom_fw.bin" Version="1"/>
+            <Distribution ID="Disclaimer" InstallParams="" InstallType="notice" MAC="{Disclaimersha1}" Size="{Disclaimerlength}" Type="" URI="https://info.update.sony.net/custom_disclaimer.xml" Version="1"/>
         </Distributions>
         <Descriptions DefaultLang="Chinese(Simplified)">
-            <Description Lang="Chinese(Simplified)" Title="CS"><![CDATA[请勿插入音频线或USB线。
+            <Description Lang="Chinese(Simplified)" Title="CS"><![CDATA[请勿插入音频线，USB线或充电保护盒。
 否则可能会导致本设备发生故障。]]></Description>
         </Descriptions>
     </ApplyCondition>
@@ -134,58 +138,57 @@ async function choose03(): Promise<Buffer> {
 }
 /**
  * 
- * 代理实现来源于 Jerry Qu
- * https://imququ.com/post/web-proxy.html
- * https://imququ.com/post/web-proxy-2.html
+ * https://github.com/wuchangming/https-mitm-proxy-handbook/
  * 
  * @param {string} mode
  * @param {Buffer} [fw]
  */
-function startProxy(mode: string, fw?: Buffer) {
-  http.createServer()
+async function startProxy(mode: string, fw?: Buffer) {
+  const ssl = {
+    key: await FSreadFile(`${__dirname}/security/mdrproxy-key.pem`),
+    cert: await FSreadFile(`${__dirname}/security/mdrproxy-cert.pem`)
+  }
+  const fakeServer = https.createServer(ssl)
     .on('request', async (cReq: http.IncomingMessage, cRes: http.ServerResponse) => {
-      const u = parse(<string>cReq.url)
-      if (u.hostname === 'info.update.sony.net') {
-        console.log('已捕获到', cReq.url)
-        // 拦截 info.xml
-        if ((<string>u.pathname).endsWith('info.xml')) {
-          // 提取 categoryID 和 serviceID
-          const pathSplit = (<string>u.pathname).match(/\/(?<categoryID>\w{5})\/(?<serviceID>\w{11})\//)
-          if (pathSplit === null) nothing()
-          else {
-            const { categoryID, serviceID } = <{ [key: string]: string }>pathSplit.groups
-            if (mode === '1' || mode[0] === '2') {
-              // 切换区域
-              const newServiceID = mode === '1' ? serviceID : `${serviceID.slice(0, -1)}${Number.parseInt(mode[1]) - 1}`
-              const XML = await decryptedXML(categoryID, newServiceID)
-              if (XML === undefined) nothing()
-              else {
-                // 替换升级检查条件, 实现强制升级
-                const editedXML = XML.replace(/<Rule Type="System" Key="FirmwareVersion" Value="[\d\.]+" Operator="Equal"\/>/g,
-                  '<Rule Type="System" Key="FirmwareVersion" Value="0" Operator="NotEqual"/>')
-                const myXML = await encryptedXML(categoryID, serviceID, editedXML)
-                end(zlib.gzipSync(myXML), { 'Content-Type': 'application/xml' })
-              }
-            }
-            else if (mode === '3') {
-              // 构建 info.xml
-              const editedXML = infoXML
-                .replace('{FWsha1}', getHash('sha1', <Buffer>fw))
-                .replace('{FWlength}', (<Buffer>fw).length.toString())
-                .replace('{Disclaimersha1}', getHash('sha1', disclaimerXML))
-                .replace('{Disclaimerlength}', disclaimerXML.length.toString())
+      const u = new URL(`https://info.update.sony.net${cReq.url}`)
+      console.log('已捕获到', cReq.url)
+      // 拦截 info.xml
+      if (u.pathname.endsWith('info.xml')) {
+        // 提取 categoryID 和 serviceID
+        const pathSplit = u.pathname.match(/\/(?<categoryID>\w{5})\/(?<serviceID>\w{11})\//)
+        if (pathSplit === null) nothing()
+        else {
+          const { categoryID, serviceID } = <{ [key: string]: string }>pathSplit.groups
+          if (mode === '1' || mode[0] === '2') {
+            // 切换区域
+            const newServiceID = mode === '1' ? serviceID : `${serviceID.slice(0, -1)}${Number.parseInt(mode[1]) - 1}`
+            const XML = await decryptedXML(categoryID, newServiceID)
+            if (XML === undefined) nothing()
+            else {
+              // 替换升级检查条件, 实现强制升级
+              const editedXML = XML.replace(/<Rule Type="System" Key="FirmwareVersion" Value="[\d\.]+" Operator="Equal"\/>/g,
+                '<Rule Type="System" Key="FirmwareVersion" Value="0" Operator="NotEqual"/>')
               const myXML = await encryptedXML(categoryID, serviceID, editedXML)
               end(zlib.gzipSync(myXML), { 'Content-Type': 'application/xml' })
             }
-            else nothing()
           }
-        } else if (u.pathname === '/custom_fw.bin') {
-          end(zlib.gzipSync(<Buffer>fw), { 'Content-Type': 'application/octet-stream' })
-        } else if (u.pathname === '/custom_disclaimer.xml') {
-          end(zlib.gzipSync(disclaimerXML), { 'Content-Type': 'application/xml' })
-        } else nothing()
-      }
-      else nothing()
+          else if (mode === '3') {
+            // 构建 info.xml
+            const editedXML = infoXML
+              .replace('{FWsha1}', getHash('sha1', <Buffer>fw))
+              .replace('{FWlength}', (<Buffer>fw).length.toString())
+              .replace('{Disclaimersha1}', getHash('sha1', disclaimerXML))
+              .replace('{Disclaimerlength}', disclaimerXML.length.toString())
+            const myXML = await encryptedXML(categoryID, serviceID, editedXML)
+            end(zlib.gzipSync(myXML), { 'Content-Type': 'application/xml' })
+          }
+          else nothing()
+        }
+      } else if (u.pathname === '/custom_fw.bin') {
+        end(zlib.gzipSync(<Buffer>fw), { 'Content-Type': 'application/octet-stream' })
+      } else if (u.pathname === '/custom_disclaimer.xml') {
+        end(zlib.gzipSync(disclaimerXML), { 'Content-Type': 'application/xml' })
+      } else nothing()
       /**
        * 传输自定义文件
        *
@@ -209,31 +212,42 @@ function startProxy(mode: string, fw?: Buffer) {
       function nothing() {
         const options = {
           hostname: u.hostname,
-          port: u.port || 80,
-          path: u.path,
+          port: u.port || 443,
+          path: u.pathname,
           method: cReq.method,
           headers: cReq.headers
         }
 
-        const pReq = http.request(options, pRes => {
+        const pReq = https.request(options, pRes => {
           cRes.writeHead(<number>pRes.statusCode, pRes.headers)
           pRes.pipe(cRes)
         }).on('error', () => cRes.end())
         cRes.on('error', () => cReq.destroy())
-
         cReq.pipe(pReq)
       }
     })
-    .on('connect', (cReq: http.IncomingMessage, cSock: net.Socket) => {
-      const u = parse('http://' + cReq.url)
+    .listen(0, 'localhost')
 
-      const pSock = net.connect(Number.parseInt(<string>u.port), u.hostname, () => {
+  http.createServer()
+    .on('connect', (cReq: http.IncomingMessage, cSock: net.Socket, head: Buffer) => {
+      const u = new URL('http://' + cReq.url)
+      let port: number
+      let hostname: string
+      if (u.hostname === 'info.update.sony.net') {
+        port = (<net.AddressInfo>fakeServer.address()).port
+        hostname = 'localhost'
+      }
+      else {
+        port = Number.parseInt(u.port)
+        hostname = u.hostname
+      }
+      const pSock = net.connect(port, hostname, () => {
         cSock.write('HTTP/1.1 200 Connection Established\r\n\r\n')
+        pSock.write(head)
         pSock.pipe(cSock)
+        cSock.pipe(pSock)
       }).on('error', () => cSock.end())
       cSock.on('error', () => pSock.end())
-
-      cSock.pipe(pSock)
     })
     .listen(8848, '0.0.0.0', () => { console.log('已启动代理服务, 端口: 8848') })
 }
@@ -246,10 +260,10 @@ function startProxy(mode: string, fw?: Buffer) {
  */
 function decryptedXML(categoryID: string, serviceID: string): Promise<string | undefined> {
   return new Promise(resolve => {
-    http.get(`http://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml`, {
+    https.get(`https://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml`, {
       headers: {
-        'User-Agent': 'Dalvik/2.1.0',
-        'Accept-Encoding': 'gzip, deflate'
+        'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 11; XQ-AT52 Build/58.1.A.5.159)',
+        'Accept-Encoding': 'gzip'
       }
     },
       res => {
