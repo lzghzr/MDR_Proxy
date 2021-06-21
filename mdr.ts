@@ -1,15 +1,16 @@
 import fs from 'fs'
 import zlib from 'zlib'
 import http from 'http'
+import https from 'https'
 import crypto from 'crypto'
 
 const categoryID = process.argv[2] || 'HP001'
 const serviceID = process.argv[3] || 'MDRID285300'
 
-http.get(`http://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml`, {
+https.get(`https://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml`, {
   headers: {
-    'User-Agent': 'Dalvik/2.1.0',
-    'Accept-Encoding': 'gzip, deflate'
+    'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 11; XQ-AT52 Build/58.1.A.5.159)',
+    'Accept-Encoding': 'gzip'
   }
 },
   res => {
