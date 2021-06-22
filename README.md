@@ -1,6 +1,4 @@
-虽然更新支持了Headphones v7, 但是https的MITM配置起来十分麻烦, 依然推荐使用[低版本的MDR_Proxy](https://github.com/lzghzr/MDR_Proxy/releases/tag/0.0.1)和Headphones
-
-但是最新几款耳机都是HTTPS的了, 所以没办法, 只能用新版了
+支持了最新版headphones 8, 为了方便, 修改版headphones放入Releases, 请自行下载
 
 Model|categoryID|serviceID|HTTPS
 -|-|-|-
