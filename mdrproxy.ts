@@ -166,7 +166,7 @@ async function startProxy(mode: string, fw?: Buffer) {
             if (XML === undefined) nothing()
             else {
               // 替换升级检查条件, 实现强制升级
-              const editedXML = XML.replace(/<Rule Type="System" Key="FirmwareVersion" Value="[\d\.]+" Operator="Equal"\/>/g,
+              const editedXML = XML.replace(/<Rule Type="System" Key="FirmwareVersion" Value="[\d\.]+" Operator=".+?"\/>/g,
                 '<Rule Type="System" Key="FirmwareVersion" Value="0" Operator="NotEqual"/>')
               const myXML = await encryptedXML(categoryID, serviceID, editedXML)
               end(zlib.gzipSync(myXML), { 'Content-Type': 'application/xml' })
