@@ -42,3 +42,8 @@ custom/*.bin
 temp
 apk
 *.js
+*.xml
+security/Headphones
+security/*.apk
+security/*.jar
+security/*.pem
