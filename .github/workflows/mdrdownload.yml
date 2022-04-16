@@ -32,9 +32,9 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          if [ -n "$(git status --porcelain)" ]
+          git add firmware/* mdrdownload.json
+          if ! git diff-index --quiet HEAD
           then
-            git add firmware/* mdrdownload.json
-            git commit -m "auto download firmware
+            git commit -m "auto download firmware"
             git push
           fi
