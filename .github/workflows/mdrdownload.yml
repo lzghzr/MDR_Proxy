@@ -33,4 +33,4 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add firmware/* mdrdownload.json
-          git diff-index --quiet HEAD || (git commit -m "auto download firmware" && git push)
+          git diff-index HEAD -- || (git commit -m "auto download firmware" && git push)
