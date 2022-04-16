@@ -32,11 +32,11 @@ const MIN = options.lastID || 2853
 })()
 
 function saveOptions() {
-  fs.writeFileSync('./mdrdownload.json', JSON.stringify(options))
+  fs.writeFileSync('./mdrdownload.json', JSON.stringify(options, undefined, 2))
 }
 
-function webGet(url: string): Promise<Buffer> {
-  return new Promise<Buffer>((resolve, reject) => {
+function webGet(url: string): Promise<Buffer | undefined> {
+  return new Promise<Buffer | undefined>((resolve, _reject) => {
     let web: typeof https | typeof http
     if (url.startsWith('https'))
       web = https
@@ -68,24 +68,24 @@ function webGet(url: string): Promise<Buffer> {
             const data = Buffer.concat(rawData)
             if (res.statusCode !== 200) {
               console.error('服务器错误', res.statusCode, data.toString())
-              reject()
+              resolve(undefined)
             }
             resolve(data)
           })
           .on('error', e => {
             console.error('数据接收错误', e)
-            reject()
+            resolve(undefined)
           })
       })
       .on('error', e => {
         console.error('请求错误', e)
-        reject()
+        resolve(undefined)
       })
   })
 }
 
 async function getInfo(category: string, service: string) {
-  const data = await webGet(`https://info.update.sony.net/${category}/${service}/info/info.xml`).catch(() => void 0)
+  const data = await webGet(`https://info.update.sony.net/${category}/${service}/info/info.xml`)
   if (data === undefined) return console.error('数据获取错误', category, service)
   // 分割数据
   const headerLength = data.indexOf('\n\n')
@@ -147,18 +147,23 @@ async function getInfo(category: string, service: string) {
 }
 
 async function getFirmware(infoData: string, category: string, service: string) {
-  const infoRegex = infoData.match(/\<Distribution ID="FW".*MAC="([^"]*)".*URI="([^"]*)".*\/\>/)
-  if (infoRegex === null) return console.error('未找到固件信息', service, infoData)
-  const [_, mac, url] = infoRegex
+  // 解析数据, 一般只有一个
+  const infoRegex = infoData.match(/\<Distribution ID="FW".*MAC="(?<mac>[^"]*)".*URI="(?<url>[^"]*)".*\/\>/)
+  if (infoRegex === null) return console.error('未找到固件信息', infoData)
+  const { mac, url } = <{ [key: string]: string }>infoRegex.groups
   if (options.data[service]?.mac === mac) return console.error('已是最新', service)
-  const fileNameRegex = url.match(/\/([^\/]*\.bin)/)
-  if (fileNameRegex === null) return console.error('固件地址错误', service, url)
+  const fileNameRegex = url.match(/\/([^\/]*)\.bin/)
+  if (fileNameRegex === null) return console.error('解析文件名错误', service, url)
   const fileName = fileNameRegex[1]
-  const fw = await webGet(url).catch(() => void 0)
+  // 下载固件
+  const fw = await webGet(url)
   if (fw === undefined) return console.error('下载固件错误', service, url)
+  const fwSHA1 = crypto.createHash('SHA1').update(fw).digest('hex')
+  if (fwSHA1 !== mac) return console.error('固件SHA1错误', service)
   if (!fs.existsSync(`./firmware/${service}/`))
     fs.mkdirSync(`./firmware/${service}/`)
-  fs.writeFileSync(`./firmware/${service}/${fileName}`, fw)
+  fs.writeFileSync(`./firmware/${service}/${fileName}.bin`, fw)
+  fs.writeFileSync(`./firmware/${service}/${fileName}.sha1`, fwSHA1)
   options.lastID = parseInt(service.substring(5, 9))
   options.data[service] = { category, service, mac }
   saveOptions()
