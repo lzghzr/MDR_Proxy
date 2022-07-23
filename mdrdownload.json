@@ -109,6 +109,11 @@
       "category": "HP002",
       "service": "MDRID295400",
       "mac": "f7a8c185e7d1bd0eadf679fff29ab493338c1a50"
+    },
+    "MDRID295000": {
+      "category": "HP002",
+      "service": "MDRID295000",
+      "mac": "471418f6fa667b13c55b5376374fa4a8f9a5d677"
     }
   },
   "lastID": 2953
