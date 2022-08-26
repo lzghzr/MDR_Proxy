@@ -1,4 +1,5 @@
-支持了最新版headphones 8, 为了方便, 修改版headphones放入Releases, 请自行下载
+支持了最新版headphones 9<br />
+因为涉及到证书导入以及中间人攻击, 为了避免产生纠纷, 不再提供app下载
 
 Model|categoryID|serviceID|HTTPS
 -|-|-|-
