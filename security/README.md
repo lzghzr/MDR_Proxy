@@ -43,7 +43,7 @@ sh mac.sh headphones_connect_9.2.0.apk
 ```
 
 ### Mac Problems
-+ `unknown option -addext`
++ `unknown option -addext`  
 https://blog.lukaskukacka.com/ios/2020/09/10/ios13-macos1015-generating-self-signed-certificates.html
   + brew install openssl  
   + homebrew-openssl dir: /opt/homebrew/opt/openssl@3/bin/openssl
