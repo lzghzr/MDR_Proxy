@@ -1,3 +1,7 @@
+# Reference
+https://www.coolapk.com/feed/35048130?shareKey=OGI2NzJjYWI0NTk1NjJjMWFkMTU~&shareUid=645359&shareFrom=com.coolapk.market_12.3.1%E2%80%8B
+
+# Tip
 支持了最新版headphones 9<br />
 因为涉及到证书导入以及中间人攻击, 为了避免产生纠纷, 不再提供app下载
 
