@@ -17,7 +17,7 @@ mdrproxy.sh 可以自动生成证书并放入Headphones app中
 
 >使用前请将所需工具一同放置在此目录内  
 > apk反编译所需工具  
-> [uber-apk-signer.jar](https://github.com/patrickfav/uber-apk-signer)
+> [uber-apk-signer.jar](https://github.com/patrickfav/uber-apk-signer)  
 > [apktool.jar](https://github.com/iBotPeaches/Apktool)  
 
 使用方法如下: 
