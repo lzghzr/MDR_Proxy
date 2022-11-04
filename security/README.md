@@ -14,18 +14,19 @@ mdrproxy-cert.pem
 
 # Toturial
 
-mdrproxy.sh 可以自动生成证书并放入Headphones app中
+https://www.mrwalkman.com/p/mdrproxyfwsidegradetool.html
 
->使用前请将所需工具一同放置在此目录内  
-> apk反编译所需工具  
-> [uber-apk-signer.jar](https://github.com/patrickfav/uber-apk-signer)  
-> [apktool.jar](https://github.com/iBotPeaches/Apktool)  
-> headphones.apk(unzip apk.zip)
-> network_security_config.xml
+<!-- mdrproxy.sh 可以自动生成证书并放入Headphones app中
+
+> 使用前请将所需工具一同放置在此目录内:  
+> [uber-apk-signer.jar](./uber-apk-signer)  
+> [apktool.jar](./apktool.jar)  
+> headphones.apk(unzip [apk.zip](./api.zip))  
+> [network_security_config.xml](./network_security_config.xml)
 
 使用方法如下: 
 
-## Linux
+## Linux / Windows
 `mdrproxy.sh Headphones.apk`
 
 ## Mac
@@ -43,7 +44,7 @@ openssl req -newkey ec:<(openssl ecparam -name secp384r1) \
             -addext "subjectAltName = DNS:info.update.sony.net" \
             -out mdrproxy_ca.pem \
             -keyout mdrproxy_key.pem && \
-sh mac.sh headphones_connect_9.2.0.apk
+sh mac.sh 
 ```
 
 ### Mac Problems
@@ -59,3 +60,4 @@ https://blog.lukaskukacka.com/ios/2020/09/10/ios13-macos1015-generating-self-sig
 
 
 
+ -->
