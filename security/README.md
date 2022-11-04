@@ -20,10 +20,13 @@ mdrproxy.sh 可以自动生成证书并放入Headphones app中
 > apk反编译所需工具  
 > [uber-apk-signer.jar](https://github.com/patrickfav/uber-apk-signer)  
 > [apktool.jar](https://github.com/iBotPeaches/Apktool)  
+> headphones.apk(unzip apk.zip)
+> network_security_config.xml
 
 使用方法如下: 
 
 ## Linux
+`mdrproxy.sh Headphones.apk`
 
 ## Mac
 由于 mac 的 OpenSSL 与 sed 机制都与 linux 不同, 故此单独写了一份
