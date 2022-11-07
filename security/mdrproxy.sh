@@ -1,5 +1,5 @@
 # 生成证书
-openssl req -x509 -config info.update.sony.net.conf -out mdrproxy_ca.pem -keyout mdrproxy_key.pem
+openssl req -x509 -days 365 -config info.update.sony.net.conf -out mdrproxy_ca.pem -keyout mdrproxy_key.pem
 cp mdrproxy_ca.pem mdrproxy-cert.pem
 cp mdrproxy_key.pem mdrproxy-key.pem
 # 解包app
