@@ -89,6 +89,23 @@ function webGet(url: string): Promise<Buffer | undefined> {
   })
 }
 
+function AESdecipher(cryptedData: Buffer, GM = false): string {
+  let keyBuffer: Buffer
+  if (GM) {
+    keyBuffer = Buffer.from('73e84a54d05837a8acdc5d9e2d652b97', 'hex')
+  }
+  else {
+    keyBuffer = Buffer.from('4fa27999ffd08b1fe4d260d57b6d3c17', 'hex')
+  }
+  const decipher = crypto.createDecipheriv('aes-128-ecb', keyBuffer, '')
+  decipher.setAutoPadding(false)
+  return Buffer.concat([decipher.update(cryptedData), decipher.final()]).toString()
+}
+
+function gethash(algorithm: string, data: Buffer | string): string {
+  return crypto.createHash(algorithm).update(data).digest('hex')
+}
+
 async function getInfo(category: string, service: string) {
   const data = await webGet(`https://info.update.sony.net/${category}/${service}/info/info.xml`)
   if (data === undefined) {
@@ -137,28 +154,32 @@ async function getInfo(category: string, service: string) {
   }
   // xml数据
   const cryptedData = data.slice(headerLength + 2)
-  let keyBuffer: Buffer
   let decryptedData = ''
   if (enc === 'none') {
     decryptedData = cryptedData.toString()
   }
   else {
     if (enc === 'des-ede3') {
-      keyBuffer = Buffer.alloc(24)
+      const keyBuffer = Buffer.alloc(24)
+      const decipher = crypto.createDecipheriv(enc, keyBuffer, '')
+      decipher.setAutoPadding(false)
+      decryptedData = Buffer.concat([decipher.update(cryptedData), decipher.final()]).toString()
     }
     else {
-      keyBuffer = Buffer.from([79, -94, 121, -103, -1, -48, -117, 31, -28, -46, 96, -43, 123, 109, 60, 23])
+      decryptedData = AESdecipher(cryptedData)
     }
-    const decipher = crypto.createDecipheriv(enc, keyBuffer, '')
-    decipher.setAutoPadding(false)
-    decryptedData = Buffer.concat([decipher.update(cryptedData), decipher.final()]).toString()
   }
   // 数据校验
   if (has !== 'none') {
-    const dataHash = crypto.createHash(has).update(decryptedData).digest('hex')
-    const hash = crypto.createHash(has).update(dataHash + service + category).digest('hex')
+    const dataHash = gethash(has, decryptedData)
+    const hash = gethash(has, dataHash + service + category)
     if (hash !== digest) {
-      return console.error('数据校验错误', header)
+      decryptedData = AESdecipher(cryptedData, true)
+      const dataHashGM = gethash(has, decryptedData)
+      const hashGM = gethash(has, dataHashGM + service + category)
+      if (hashGM !== digest) {
+        return console.error('数据校验错误', header)
+      }
     }
   }
   // 下载固件
@@ -176,12 +197,13 @@ async function getFirmware(infoData: string, category: string, service: string) 
       console.error('已是最新', service, mac)
       continue
     }
-    const fileNameRegex = url.match(/\/([^\/]*)\.bin/)
+    const fileNameRegex = url.match(/\/([^\/]*)\.(\w{3})$/)
     if (fileNameRegex === null) {
       console.error('解析文件名错误', service, url)
       continue
     }
     const fileName = fileNameRegex[1]
+    const extName = fileNameRegex[2]
     // 下载固件
     const fw = await webGet(url)
     if (fw === undefined) {
@@ -196,7 +218,7 @@ async function getFirmware(infoData: string, category: string, service: string) 
     if (!fs.existsSync(`./firmware/${service}/`)) {
       fs.mkdirSync(`./firmware/${service}/`)
     }
-    fs.writeFileSync(`./firmware/${service}/${fileName}.bin`, fw)
+    fs.writeFileSync(`./firmware/${service}/${fileName}.${extName}`, fw)
     fs.writeFileSync(`./firmware/${service}/${fileName}.sha1`, fwSHA1)
     if (options.data[service] === undefined) {
       const lastID = parseInt(service.substring(5, 9))

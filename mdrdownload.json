@@ -162,7 +162,14 @@
       "mac": [
         "95db8b7fe2cf5774ec4dd4bda822da6aca4660c9"
       ]
+    },
+    "MDRID295900": {
+      "category": "HP002",
+      "service": "MDRID295900",
+      "mac": [
+        "48bf6fc4c7b1dbfbbcaf4765a19e0002d672a8fa"
+      ]
     }
   },
-  "lastID": 2954
+  "lastID": 2959
 }
