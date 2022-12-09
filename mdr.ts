@@ -15,7 +15,7 @@ https.get(`https://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml
 },
   res => {
     let cRes: http.IncomingMessage | zlib.Gunzip | zlib.Inflate
-    let rawData: Buffer[] = []
+    const rawData: Buffer[] = []
     switch (res.headers['content-encoding']) {
       case 'gzip':
         cRes = res.pipe(zlib.createGunzip())
@@ -31,14 +31,18 @@ https.get(`https://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml
       .on('data', (chunk: Buffer) => rawData.push(chunk))
       .on('end', () => {
         const data = Buffer.concat(rawData)
-        if (res.statusCode !== 200) return console.error('服务器错误', res.statusCode, data.toString())
+        if (res.statusCode !== 200) {
+          return console.error('服务器错误', res.statusCode, data.toString())
+        }
         // 分割数据
         const headerLength = data.indexOf('\n\n')
         // 头部数据
         const header = data.slice(0, headerLength).toString()
         // 解析头部
         const headerSplit = header.match(/eaid:(?<eaid>.*)\ndaid:(?<daid>.*)\ndigest:(?<digest>.*)/)
-        if (headerSplit === null) return console.error('数据头错误', header)
+        if (headerSplit === null) {
+          return console.error('数据头错误', header)
+        }
         const { eaid, daid, digest } = <{ [key: string]: string }>headerSplit.groups
         let enc = ''
         switch (eaid) {
@@ -68,28 +72,44 @@ https.get(`https://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml
           default:
             break
         }
-        if (enc === '' || has === '') return console.error('加密信息错误', header)
+        if (enc === '' || has === '') {
+          return console.error('加密信息错误', header)
+        }
         // xml数据
         const cryptedData = data.slice(headerLength + 2)
-        let keyBuffer: Buffer
         let decryptedData = ''
-        if (enc === 'none') decryptedData = cryptedData.toString()
+        if (enc === 'none') {
+          decryptedData = cryptedData.toString()
+        }
         else {
-          if (enc === 'des-ede3') keyBuffer = Buffer.alloc(24)
-          else keyBuffer = Buffer.from([79, -94, 121, -103, -1, -48, -117, 31, -28, -46, 96, -43, 123, 109, 60, 23])
-          const decipher = crypto.createDecipheriv(enc, keyBuffer, '')
-          decipher.setAutoPadding(false)
-          decryptedData = Buffer.concat([decipher.update(cryptedData), decipher.final()]).toString()
+          if (enc === 'des-ede3') {
+            const keyBuffer = Buffer.alloc(24)
+            const decipher = crypto.createDecipheriv(enc, keyBuffer, '')
+            decipher.setAutoPadding(false)
+            decryptedData = Buffer.concat([decipher.update(cryptedData), decipher.final()]).toString()
+          }
+          else {
+            decryptedData = AESdecipher(cryptedData)
+          }
         }
         // 数据校验
         if (has !== 'none') {
-          const dataHash = crypto.createHash(has).update(decryptedData).digest('hex')
-          const hash = crypto.createHash(has).update(dataHash + serviceID + categoryID).digest('hex')
-          if (hash !== digest) return console.error('数据校验错误', header)
+          const dataHash = gethash(has, decryptedData)
+          const hash = gethash(has, dataHash + serviceID + categoryID)
+          if (hash !== digest) {
+            decryptedData = AESdecipher(cryptedData, true)
+            const dataHashGM = gethash(has, decryptedData)
+            const hashGM = gethash(has, dataHashGM + serviceID + categoryID)
+            if (hashGM !== digest) {
+              return console.error('数据校验错误', header)
+            }
+          }
         }
         // 写入数据
         fs.writeFile(`./${categoryID}_${serviceID}.xml`, decryptedData, error => {
-          if (error !== null) console.error('数据写入错误', error)
+          if (error !== null) {
+            console.error('数据写入错误', error)
+          }
         })
       })
       .on('error', e => {
@@ -99,3 +119,20 @@ https.get(`https://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml
   .on('error', e => {
     console.error('请求错误', e)
   })
+
+function AESdecipher(cryptedData: Buffer, GM = false): string {
+  let keyBuffer: Buffer
+  if (GM) {
+    keyBuffer = Buffer.from('73e84a54d05837a8acdc5d9e2d652b97', 'hex')
+  }
+  else {
+    keyBuffer = Buffer.from('4fa27999ffd08b1fe4d260d57b6d3c17', 'hex')
+  }
+  const decipher = crypto.createDecipheriv('aes-128-ecb', keyBuffer, '')
+  decipher.setAutoPadding(false)
+  return Buffer.concat([decipher.update(cryptedData), decipher.final()]).toString()
+}
+
+function gethash(algorithm: string, data: Buffer | string): string {
+  return crypto.createHash(algorithm).update(data).digest('hex')
+}
