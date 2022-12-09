@@ -17,13 +17,16 @@ const MIN = options.lastID || 2853
 (async () => {
   // 更新最新固件
   if (options.data !== undefined) {
-    for (const service in options.data)
+    for (const service in options.data) {
       await getInfo(options.data[service].category, service)
+    }
   }
   // 扫描新ID
   for (let categoryID = 1; categoryID < 3; categoryID++) {
     for (let serviceID = MIN; serviceID < MIN + 10; serviceID++) {
-      if ((categoryID === 1 && serviceID > 2942) || (categoryID === 2 && serviceID < 2943)) continue
+      if ((categoryID === 1 && serviceID > 2942) || (categoryID === 2 && serviceID < 2943)) {
+        continue
+      }
       const category = `HP00${categoryID}`
       const service = `MDRID${serviceID}00`
       await getInfo(category, service)
@@ -38,10 +41,12 @@ function saveOptions() {
 function webGet(url: string): Promise<Buffer | undefined> {
   return new Promise<Buffer | undefined>((resolve, _reject) => {
     let web: typeof https | typeof http
-    if (url.startsWith('https'))
+    if (url.startsWith('https')) {
       web = https
-    else
+    }
+    else {
       web = http
+    }
     web.get(url, {
       headers: {
         'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 11; XQ-AT52 Build/58.1.A.5.159)',
@@ -50,7 +55,7 @@ function webGet(url: string): Promise<Buffer | undefined> {
     },
       res => {
         let cRes: http.IncomingMessage | zlib.Gunzip | zlib.Inflate
-        let rawData: Buffer[] = []
+        const rawData: Buffer[] = []
         switch (res.headers['content-encoding']) {
           case 'gzip':
             cRes = res.pipe(zlib.createGunzip())
@@ -86,17 +91,21 @@ function webGet(url: string): Promise<Buffer | undefined> {
 
 async function getInfo(category: string, service: string) {
   const data = await webGet(`https://info.update.sony.net/${category}/${service}/info/info.xml`)
-  if (data === undefined) return console.error('数据获取错误', category, service)
+  if (data === undefined) {
+    return console.error('数据获取错误', category, service)
+  }
   // 分割数据
   const headerLength = data.indexOf('\n\n')
   // 头部数据
   const header = data.slice(0, headerLength).toString()
   // 解析头部
   const headerSplit = header.match(/eaid:(?<eaid>.*)\ndaid:(?<daid>.*)\ndigest:(?<digest>.*)/)
-  if (headerSplit === null) return console.error('数据头错误', header)
+  if (headerSplit === null) {
+    return console.error('数据头错误', header)
+  }
   const { eaid, daid, digest } = <{ [key: string]: string }>headerSplit.groups
   let enc = ''
-  switch (eaid) {
+  switch (eaid.toUpperCase()) {
     case 'ENC0001':
       enc = 'none'
       break
@@ -110,7 +119,7 @@ async function getInfo(category: string, service: string) {
       break
   }
   let has = ''
-  switch (daid) {
+  switch (daid.toUpperCase()) {
     case 'HAS0001':
       has = 'none'
       break
@@ -123,15 +132,23 @@ async function getInfo(category: string, service: string) {
     default:
       break
   }
-  if (enc === '' || has === '') return console.error('加密信息错误', header)
+  if (enc === '' || has === '') {
+    return console.error('加密信息错误', header)
+  }
   // xml数据
   const cryptedData = data.slice(headerLength + 2)
   let keyBuffer: Buffer
   let decryptedData = ''
-  if (enc === 'none') decryptedData = cryptedData.toString()
+  if (enc === 'none') {
+    decryptedData = cryptedData.toString()
+  }
   else {
-    if (enc === 'des-ede3') keyBuffer = Buffer.alloc(24)
-    else keyBuffer = Buffer.from([79, -94, 121, -103, -1, -48, -117, 31, -28, -46, 96, -43, 123, 109, 60, 23])
+    if (enc === 'des-ede3') {
+      keyBuffer = Buffer.alloc(24)
+    }
+    else {
+      keyBuffer = Buffer.from([79, -94, 121, -103, -1, -48, -117, 31, -28, -46, 96, -43, 123, 109, 60, 23])
+    }
     const decipher = crypto.createDecipheriv(enc, keyBuffer, '')
     decipher.setAutoPadding(false)
     decryptedData = Buffer.concat([decipher.update(cryptedData), decipher.final()]).toString()
@@ -140,7 +157,9 @@ async function getInfo(category: string, service: string) {
   if (has !== 'none') {
     const dataHash = crypto.createHash(has).update(decryptedData).digest('hex')
     const hash = crypto.createHash(has).update(dataHash + service + category).digest('hex')
-    if (hash !== digest) return console.error('数据校验错误', header)
+    if (hash !== digest) {
+      return console.error('数据校验错误', header)
+    }
   }
   // 下载固件
   await getFirmware(decryptedData, category, service)
@@ -148,24 +167,48 @@ async function getInfo(category: string, service: string) {
 
 async function getFirmware(infoData: string, category: string, service: string) {
   // 解析数据, 一般只有一个
-  const infoRegex = infoData.match(/\<Distribution ID="FW".*MAC="(?<mac>[^"]*)".*URI="(?<url>[^"]*)".*\/\>/)
-  if (infoRegex === null) return console.error('未找到固件信息', infoData)
-  const { mac, url } = <{ [key: string]: string }>infoRegex.groups
-  if (options.data[service]?.mac === mac) return console.error('已是最新', service)
-  const fileNameRegex = url.match(/\/([^\/]*)\.bin/)
-  if (fileNameRegex === null) return console.error('解析文件名错误', service, url)
-  const fileName = fileNameRegex[1]
-  // 下载固件
-  const fw = await webGet(url)
-  if (fw === undefined) return console.error('下载固件错误', service, url)
-  const fwSHA1 = crypto.createHash('SHA1').update(fw).digest('hex')
-  if (fwSHA1 !== mac) return console.error('固件SHA1错误', service)
-  if (!fs.existsSync(`./firmware/${service}/`))
-    fs.mkdirSync(`./firmware/${service}/`)
-  fs.writeFileSync(`./firmware/${service}/${fileName}.bin`, fw)
-  fs.writeFileSync(`./firmware/${service}/${fileName}.sha1`, fwSHA1)
-  options.lastID = parseInt(service.substring(5, 9))
-  options.data[service] = { category, service, mac }
+  // 打脸了, 修一下
+  const infosRegex = /\<Distribution ID="FW".*MAC="(?<mac>[^"]*)".*URI="(?<url>[^"]*)".*\/\>/g
+  let infoMatch: RegExpExecArray | null
+  while ((infoMatch = infosRegex.exec(infoData)) !== null) {
+    const { mac, url } = <{ [key: string]: string }>infoMatch.groups
+    if (options.data[service]?.mac.includes(mac)) {
+      console.error('已是最新', service, mac)
+      continue
+    }
+    const fileNameRegex = url.match(/\/([^\/]*)\.bin/)
+    if (fileNameRegex === null) {
+      console.error('解析文件名错误', service, url)
+      continue
+    }
+    const fileName = fileNameRegex[1]
+    // 下载固件
+    const fw = await webGet(url)
+    if (fw === undefined) {
+      console.error('下载固件错误', service, url)
+      continue
+    }
+    const fwSHA1 = crypto.createHash('SHA1').update(fw).digest('hex')
+    if (fwSHA1 !== mac) {
+      console.error('固件SHA1错误', service, mac)
+      continue
+    }
+    if (!fs.existsSync(`./firmware/${service}/`)) {
+      fs.mkdirSync(`./firmware/${service}/`)
+    }
+    fs.writeFileSync(`./firmware/${service}/${fileName}.bin`, fw)
+    fs.writeFileSync(`./firmware/${service}/${fileName}.sha1`, fwSHA1)
+    if (options.data[service] === undefined) {
+      const lastID = parseInt(service.substring(5, 9))
+      if (options.lastID !== undefined && lastID > options.lastID) {
+        options.lastID = lastID
+      }
+      options.data[service] = { category, service, "mac": [mac] }
+    }
+    else {
+      options.data[service].mac.push(mac)
+    }
+  }
   saveOptions()
 }
 
@@ -179,5 +222,5 @@ interface OptionsData {
 interface OptionsDataItem {
   category: string
   service: string
-  mac: string
+  mac: string[]
 }
