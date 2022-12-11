@@ -4,40 +4,50 @@ import http from 'http'
 import https from 'https'
 import crypto from 'crypto'
 
-if (!fs.existsSync('./mdrdownload.json'))
-  fs.writeFileSync('./mdrdownload.json', '{"data":{}}')
+if (!fs.existsSync('./mdrdownload.json')) {
+  fs.writeFileSync('./mdrdownload.json', '{"data":{},"lastID":2853}')
+}
 
-if (!fs.existsSync('./firmware/'))
+if (!fs.existsSync('./firmware/')) {
   fs.mkdirSync('./firmware/')
+}
 
 const options: Options = JSON.parse(fs.readFileSync('./mdrdownload.json').toString())
 
-const MIN = options.lastID || 2853
+const MIN = options.lastID
+const LAST = options.lastID === 2853 ? 100 : 10
   ;
 (async () => {
   // 更新最新固件
   if (options.data !== undefined) {
-    for (const service in options.data) {
-      await getInfo(options.data[service].category, service)
+    for (const serviceID in options.data) {
+      await getInfo(options.data[serviceID].category, serviceID)
     }
   }
-  // 扫描新ID
+  // 扫描新ID, 初次扫描100个, 后续10个
   for (let categoryID = 1; categoryID < 3; categoryID++) {
-    for (let serviceID = MIN; serviceID < MIN + 10; serviceID++) {
+    for (let serviceID = MIN; serviceID < MIN + LAST; serviceID++) {
       if ((categoryID === 1 && serviceID > 2942) || (categoryID === 2 && serviceID < 2943)) {
         continue
       }
       const category = `HP00${categoryID}`
-      const service = `MDRID${serviceID}00`
-      await getInfo(category, service)
+      await getInfo(category, serviceID.toString())
     }
   }
 })()
-
+/**
+ * 保存mdrdownload.json
+ *
+ */
 function saveOptions() {
   fs.writeFileSync('./mdrdownload.json', JSON.stringify(options, undefined, 2))
 }
-
+/**
+ * webGet
+ *
+ * @param {string} url
+ * @returns {(Promise<Buffer | undefined>)}
+ */
 function webGet(url: string): Promise<Buffer | undefined> {
   return new Promise<Buffer | undefined>((resolve, _reject) => {
     let web: typeof https | typeof http
@@ -88,9 +98,123 @@ function webGet(url: string): Promise<Buffer | undefined> {
       })
   })
 }
-
+/**
+ * 获取并解析info.xml
+ *
+ * @param {string} category
+ * @param {string} serviceID
+ */
+async function getInfo(category: string, serviceID: string) {
+  // 目前只观察到MDRID有0-3
+  for (let i = 0; i <= 3; i++) {
+    const service = `MDRID${serviceID}0${i}`
+    const data = await webGet(`https://info.update.sony.net/${category}/${service}/info/info.xml`)
+    if (data === undefined) {
+      console.error('数据获取错误', category, service)
+      continue
+    }
+    // 分割数据
+    const headerLength = data.indexOf('\n\n')
+    // 头部数据
+    const header = data.slice(0, headerLength).toString()
+    // 解析头部
+    const headerSplit = header.match(/eaid:(?<eaid>.*)\ndaid:(?<daid>.*)\ndigest:(?<digest>.*)/)
+    if (headerSplit === null) {
+      console.error('数据头错误', header)
+      continue
+    }
+    const { eaid, daid, digest } = <{ [key: string]: string }>headerSplit.groups
+    let enc = ''
+    switch (eaid.toUpperCase()) {
+      case 'ENC0001':
+        enc = 'none'
+        break
+      case 'ENC0002':
+        enc = 'des-ede3'
+        break
+      case 'ENC0003':
+        enc = 'aes-128-ecb'
+        break
+      default:
+        break
+    }
+    let has = ''
+    switch (daid.toUpperCase()) {
+      case 'HAS0001':
+        has = 'none'
+        break
+      case 'HAS0002':
+        has = 'md5'
+        break
+      case 'HAS0003':
+        has = 'sha1'
+        break
+      default:
+        break
+    }
+    if (enc === '' || has === '') {
+      console.error('加密信息错误', header)
+      continue
+    }
+    // xml数据
+    const cryptedData = data.slice(headerLength + 2)
+    let decryptedData = ''
+    if (enc === 'none') {
+      decryptedData = cryptedData.toString()
+    }
+    else {
+      if (enc === 'des-ede3') {
+        decryptedData = DESdecipher(cryptedData)
+      }
+      else {
+        decryptedData = AESdecipher(cryptedData)
+      }
+    }
+    // 数据校验
+    if (has !== 'none') {
+      const dataHash = gethash(has, decryptedData)
+      const hash = gethash(has, dataHash + service + category)
+      if (hash !== digest) {
+        decryptedData = AESdecipher(cryptedData, true)
+        const dataHashGM = gethash(has, decryptedData)
+        const hashGM = gethash(has, dataHashGM + service + category)
+        if (hashGM !== digest) {
+          console.error('数据校验错误', header)
+          continue
+        }
+      }
+    }
+    // 某些情况下会出现乱码
+    if (!isXML(decryptedData)) {
+      console.error('XML数据错误', header)
+      continue
+    }
+    // 下载固件
+    await getFirmware(decryptedData, category, service, serviceID)
+  }
+}
+/**
+ * DESdecipher
+ *
+ * @param {Buffer} cryptedData
+ * @returns {string}
+ */
+function DESdecipher(cryptedData: Buffer): string {
+  const keyBuffer = Buffer.alloc(24)
+  const decipher = crypto.createDecipheriv('des-ede3', keyBuffer, '')
+  decipher.setAutoPadding(false)
+  return Buffer.concat([decipher.update(cryptedData), decipher.final()]).toString()
+}
+/**
+ * AESdecipher
+ *
+ * @param {Buffer} cryptedData
+ * @param {boolean} [GM=false]
+ * @returns {string}
+ */
 function AESdecipher(cryptedData: Buffer, GM = false): string {
   let keyBuffer: Buffer
+  // 似乎是PC上用的, 不知道为什么出现在这里
   if (GM) {
     keyBuffer = Buffer.from('73e84a54d05837a8acdc5d9e2d652b97', 'hex')
   }
@@ -101,102 +225,47 @@ function AESdecipher(cryptedData: Buffer, GM = false): string {
   decipher.setAutoPadding(false)
   return Buffer.concat([decipher.update(cryptedData), decipher.final()]).toString()
 }
-
+/**
+ * gethash
+ *
+ * @param {string} algorithm
+ * @param {(Buffer | string)} data
+ * @returns {string}
+ */
 function gethash(algorithm: string, data: Buffer | string): string {
   return crypto.createHash(algorithm).update(data).digest('hex')
 }
-
-async function getInfo(category: string, service: string) {
-  const data = await webGet(`https://info.update.sony.net/${category}/${service}/info/info.xml`)
-  if (data === undefined) {
-    return console.error('数据获取错误', category, service)
-  }
-  // 分割数据
-  const headerLength = data.indexOf('\n\n')
-  // 头部数据
-  const header = data.slice(0, headerLength).toString()
-  // 解析头部
-  const headerSplit = header.match(/eaid:(?<eaid>.*)\ndaid:(?<daid>.*)\ndigest:(?<digest>.*)/)
-  if (headerSplit === null) {
-    return console.error('数据头错误', header)
-  }
-  const { eaid, daid, digest } = <{ [key: string]: string }>headerSplit.groups
-  let enc = ''
-  switch (eaid.toUpperCase()) {
-    case 'ENC0001':
-      enc = 'none'
-      break
-    case 'ENC0002':
-      enc = 'des-ede3'
-      break
-    case 'ENC0003':
-      enc = 'aes-128-ecb'
-      break
-    default:
-      break
-  }
-  let has = ''
-  switch (daid.toUpperCase()) {
-    case 'HAS0001':
-      has = 'none'
-      break
-    case 'HAS0002':
-      has = 'md5'
-      break
-    case 'HAS0003':
-      has = 'sha1'
-      break
-    default:
-      break
-  }
-  if (enc === '' || has === '') {
-    return console.error('加密信息错误', header)
-  }
-  // xml数据
-  const cryptedData = data.slice(headerLength + 2)
-  let decryptedData = ''
-  if (enc === 'none') {
-    decryptedData = cryptedData.toString()
+/**
+ * isXML
+ *
+ * @param {string} xml
+ * @returns {boolean}
+ */
+function isXML(xml: string): boolean {
+  if (xml.startsWith('<?xml')) {
+    return true
   }
   else {
-    if (enc === 'des-ede3') {
-      const keyBuffer = Buffer.alloc(24)
-      const decipher = crypto.createDecipheriv(enc, keyBuffer, '')
-      decipher.setAutoPadding(false)
-      decryptedData = Buffer.concat([decipher.update(cryptedData), decipher.final()]).toString()
-    }
-    else {
-      decryptedData = AESdecipher(cryptedData)
-    }
+    return false
   }
-  // 数据校验
-  if (has !== 'none') {
-    const dataHash = gethash(has, decryptedData)
-    const hash = gethash(has, dataHash + service + category)
-    if (hash !== digest) {
-      decryptedData = AESdecipher(cryptedData, true)
-      const dataHashGM = gethash(has, decryptedData)
-      const hashGM = gethash(has, dataHashGM + service + category)
-      if (hashGM !== digest) {
-        return console.error('数据校验错误', header)
-      }
-    }
-  }
-  // 下载固件
-  await getFirmware(decryptedData, category, service)
 }
-
-async function getFirmware(infoData: string, category: string, service: string) {
+/**
+ * 下载固件
+ *
+ * @param {string} infoData
+ * @param {string} category
+ * @param {string} service
+ * @param {string} serviceID
+ */
+async function getFirmware(infoData: string, category: string, service: string, serviceID: string) {
   // 解析数据, 一般只有一个
   // 打脸了, 修一下
   const infosRegex = /\<Distribution ID="FW".*MAC="(?<mac>[^"]*)".*URI="(?<url>[^"]*)".*\/\>/g
   let infoMatch: RegExpExecArray | null
+  // 循环获取固件信息
   while ((infoMatch = infosRegex.exec(infoData)) !== null) {
     const { mac, url } = <{ [key: string]: string }>infoMatch.groups
-    if (options.data[service]?.mac.includes(mac)) {
-      console.error('已是最新', service, mac)
-      continue
-    }
+
     const fileNameRegex = url.match(/\/([^\/]*)\.(\w{3})$/)
     if (fileNameRegex === null) {
       console.error('解析文件名错误', service, url)
@@ -204,6 +273,35 @@ async function getFirmware(infoData: string, category: string, service: string) 
     }
     const fileName = fileNameRegex[1]
     const extName = fileNameRegex[2]
+    // 查找是否已经下载
+    if (options.data[serviceID]?.services[service]?.includes(mac)) {
+      console.error('已是最新', service, mac)
+      continue
+    }
+    // 是否与其他区域固件相同
+    else {
+      let same = false
+      for (const service2 in options.data[serviceID]?.services) {
+        if (options.data[serviceID].services[service2].includes(mac)) {
+          console.error(`与 ${service2} 相同`, service, mac)
+          if (!fs.existsSync(`./firmware/${serviceID}/${service}`)) {
+            fs.mkdirSync(`./firmware/${serviceID}/${service}`)
+          }
+          fs.writeFileSync(`./firmware/${serviceID}/${service}/${fileName}.sameas${service2}.${mac}.${extName}`, fileName)
+          if (options.data[serviceID].services[service] === undefined) {
+            options.data[serviceID].services[service] = [mac]
+          }
+          else {
+            options.data[serviceID].services[service].push(mac)
+          }
+          same = true
+          break
+        }
+      }
+      if (same) {
+        continue
+      }
+    }
     // 下载固件
     const fw = await webGet(url)
     if (fw === undefined) {
@@ -215,27 +313,33 @@ async function getFirmware(infoData: string, category: string, service: string) 
       console.error('固件SHA1错误', service, mac)
       continue
     }
-    if (!fs.existsSync(`./firmware/${service}/`)) {
-      fs.mkdirSync(`./firmware/${service}/`)
+    if (!fs.existsSync(`./firmware/${serviceID}/`)) {
+      fs.mkdirSync(`./firmware/${serviceID}/`)
     }
-    fs.writeFileSync(`./firmware/${service}/${fileName}.${extName}`, fw)
-    fs.writeFileSync(`./firmware/${service}/${fileName}.sha1`, fwSHA1)
-    if (options.data[service] === undefined) {
+    if (!fs.existsSync(`./firmware/${serviceID}/${service}`)) {
+      fs.mkdirSync(`./firmware/${serviceID}/${service}`)
+    }
+    fs.writeFileSync(`./firmware/${serviceID}/${service}/${fileName}.${mac}.${extName}`, fw)
+    if (options.data[serviceID] === undefined) {
       const lastID = parseInt(service.substring(5, 9))
-      if (options.lastID !== undefined && lastID > options.lastID) {
+      if (lastID > options.lastID) {
         options.lastID = lastID
       }
-      options.data[service] = { category, service, "mac": [mac] }
+      options.data[serviceID] = { category, services: {} }
+      options.data[serviceID].services[service] = [mac]
+    }
+    else if (options.data[serviceID].services[service] === undefined) {
+      options.data[serviceID].services[service] = [mac]
     }
     else {
-      options.data[service].mac.push(mac)
+      options.data[serviceID].services[service].push(mac)
     }
   }
   saveOptions()
 }
 
 interface Options {
-  lastID?: number
+  lastID: number
   data: OptionsData
 }
 interface OptionsData {
@@ -243,6 +347,8 @@ interface OptionsData {
 }
 interface OptionsDataItem {
   category: string
-  service: string
-  mac: string[]
+  services: OptionsDataItemServices
+}
+interface OptionsDataItemServices {
+  [key: string]: string[]
 }
