@@ -71,9 +71,12 @@ async function start() {
     case '1':
       startProxy('1')
       break
-    case '2':
+    case '2': {
       const select02 = await choose02()
       switch (select02) {
+        case '0':
+          startProxy('20')
+          break
         case '1':
           startProxy('21')
           break
@@ -85,10 +88,12 @@ async function start() {
           break
       }
       break
-    case '3':
+    }
+    case '3': {
       const select03 = await choose03()
       startProxy('3', select03)
       break
+    }
   }
 }
 /**
@@ -112,7 +117,7 @@ function choose(): Promise<string> {
 async function choose0(): Promise<string> {
   console.log(`请选择功能:
 1. 强制更新固件
-2. 强制切换固件
+2. 强制切换地区(并不是所有设备都支持)
 3. 强刷自定义固件(非常危险!非常危险!!非常危险!!!)`)
   const select = await choose()
   if (['1', '2', '3'].includes(select)) return select
@@ -120,11 +125,12 @@ async function choose0(): Promise<string> {
 }
 async function choose02(): Promise<string> {
   console.log(`请选择区域:
-1. 00(国际版)
-2. 01(日本版?)
-3. 02(中国版)`)
+0. 00(EN)
+1. 01(SPLC)
+2. 02(CN)
+3. 03(unknown)`)
   const select = await choose()
-  if (['1', '2', '3'].includes(select)) return select
+  if (['0', '1', '2', '3'].includes(select)) return select
   else return choose02()
 }
 async function choose03(): Promise<Buffer> {
@@ -161,7 +167,7 @@ async function startProxy(mode: string, fw?: Buffer) {
           const { categoryID, serviceID } = <{ [key: string]: string }>pathSplit.groups
           if (mode === '1' || mode[0] === '2') {
             // 切换区域
-            const newServiceID = mode === '1' ? serviceID : `${serviceID.slice(0, -1)}${Number.parseInt(mode[1]) - 1}`
+            const newServiceID = mode === '1' ? serviceID : `${serviceID.slice(0, -1)}${mode[1]}`
             const XML = await decryptedXML(categoryID, newServiceID)
             if (XML === undefined) nothing()
             else {
@@ -268,7 +274,7 @@ function decryptedXML(categoryID: string, serviceID: string): Promise<string | u
     },
       res => {
         let cRes: http.IncomingMessage | zlib.Gunzip | zlib.Inflate
-        let rawData: Buffer[] = []
+        const rawData: Buffer[] = []
         switch (res.headers['content-encoding']) {
           case 'gzip':
             cRes = res.pipe(zlib.createGunzip())
