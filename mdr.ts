@@ -35,10 +35,13 @@ https.get(`https://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml
           return console.error('服务器错误', res.statusCode, data.toString())
         }
         // 分割数据
+        // Split data
         const headerLength = data.indexOf('\n\n')
         // 头部数据
+        // Header data
         const header = data.slice(0, headerLength).toString()
         // 解析头部
+        // Parse header
         const headerSplit = header.match(/eaid:(?<eaid>.*)\ndaid:(?<daid>.*)\ndigest:(?<digest>.*)/)
         if (headerSplit === null) {
           return console.error('数据头错误', header)
@@ -76,6 +79,7 @@ https.get(`https://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml
           return console.error('加密信息错误', header)
         }
         // xml数据
+        // xml data
         const cryptedData = data.slice(headerLength + 2)
         let decryptedData = ''
         if (enc === 'none') {
@@ -93,6 +97,7 @@ https.get(`https://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml
           }
         }
         // 数据校验
+        // Data verification
         if (has !== 'none') {
           const dataHash = gethash(has, decryptedData)
           const hash = gethash(has, dataHash + serviceID + categoryID)
@@ -106,6 +111,7 @@ https.get(`https://info.update.sony.net/${categoryID}/${serviceID}/info/info.xml
           }
         }
         // 写入数据
+        // Write data
         fs.writeFile(`./${categoryID}_${serviceID}.xml`, decryptedData, error => {
           if (error !== null) {
             console.error('数据写入错误', error)
