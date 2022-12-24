@@ -19,12 +19,14 @@ const LAST = options.lastID === 2853 ? 100 : 10
   ;
 (async () => {
   // 更新最新固件
+  // Update the latest firmware
   if (options.data !== undefined) {
     for (const serviceID in options.data) {
       await getInfo(options.data[serviceID].category, serviceID)
     }
   }
   // 扫描新ID, 初次扫描100个, 后续10个
+  // Scan new ID, scan 100 for the first time, and 10 later
   for (let categoryID = 1; categoryID < 3; categoryID++) {
     for (let serviceID = MIN; serviceID < MIN + LAST; serviceID++) {
       if ((categoryID === 1 && serviceID > 2942) || (categoryID === 2 && serviceID < 2943)) {
@@ -82,18 +84,18 @@ function webGet(url: string): Promise<Buffer | undefined> {
           .on('end', () => {
             const data = Buffer.concat(rawData)
             if (res.statusCode !== 200) {
-              console.error('服务器错误', res.statusCode, data.toString())
+              console.error('服务器错误, Server error', res.statusCode, data.toString())
               resolve(undefined)
             }
             resolve(data)
           })
           .on('error', e => {
-            console.error('数据接收错误', e)
+            console.error('数据接收错误, Data receiving error', e)
             resolve(undefined)
           })
       })
       .on('error', e => {
-        console.error('请求错误', e)
+        console.error('请求错误, Request error', e)
         resolve(undefined)
       })
   })
@@ -106,21 +108,25 @@ function webGet(url: string): Promise<Buffer | undefined> {
  */
 async function getInfo(category: string, serviceID: string) {
   // 目前只观察到MDRID有0-3
+  // Currently only MDRID 0-3 is observed
   for (let i = 0; i <= 3; i++) {
     const service = `MDRID${serviceID}0${i}`
     const data = await webGet(`https://info.update.sony.net/${category}/${service}/info/info.xml`)
     if (data === undefined) {
-      console.error('数据获取错误', category, service)
+      console.error('数据获取错误, Error getting data', category, service)
       continue
     }
     // 分割数据
+    // Split data
     const headerLength = data.indexOf('\n\n')
     // 头部数据
+    // Header data
     const header = data.slice(0, headerLength).toString()
     // 解析头部
+    // Parse header
     const headerSplit = header.match(/eaid:(?<eaid>.*)\ndaid:(?<daid>.*)\ndigest:(?<digest>.*)/)
     if (headerSplit === null) {
-      console.error('数据头错误', header)
+      console.error('数据头错误, Data header error', header)
       continue
     }
     const { eaid, daid, digest } = <{ [key: string]: string }>headerSplit.groups
@@ -153,10 +159,11 @@ async function getInfo(category: string, serviceID: string) {
         break
     }
     if (enc === '' || has === '') {
-      console.error('加密信息错误', header)
+      console.error('加密信息错误, Encryption information error', header)
       continue
     }
     // xml数据
+    // xml data
     const cryptedData = data.slice(headerLength + 2)
     let decryptedData = ''
     if (enc === 'none') {
@@ -171,6 +178,7 @@ async function getInfo(category: string, serviceID: string) {
       }
     }
     // 数据校验
+    // Data verification
     if (has !== 'none') {
       const dataHash = gethash(has, decryptedData)
       const hash = gethash(has, dataHash + service + category)
@@ -179,17 +187,19 @@ async function getInfo(category: string, serviceID: string) {
         const dataHashGM = gethash(has, decryptedData)
         const hashGM = gethash(has, dataHashGM + service + category)
         if (hashGM !== digest) {
-          console.error('数据校验错误', header)
+          console.error('数据校验错误, Data validation error', header)
           continue
         }
       }
     }
     // 某些情况下会出现乱码
+    // In some cases, garbled code may appear
     if (!isXML(decryptedData)) {
-      console.error('XML数据错误', header)
+      console.error('XML数据错误, XML data error', header)
       continue
     }
     // 下载固件
+    // Download firmware
     await getFirmware(decryptedData, category, service, serviceID)
   }
 }
@@ -215,6 +225,7 @@ function DESdecipher(cryptedData: Buffer): string {
 function AESdecipher(cryptedData: Buffer, GM = false): string {
   let keyBuffer: Buffer
   // 似乎是PC上用的, 不知道为什么出现在这里
+  // It seems to be used on PC, don't know why it appears here
   if (GM) {
     keyBuffer = Buffer.from('73e84a54d05837a8acdc5d9e2d652b97', 'hex')
   }
@@ -251,6 +262,7 @@ function isXML(xml: string): boolean {
 }
 /**
  * 下载固件
+ * Download firmware
  *
  * @param {string} infoData
  * @param {string} category
@@ -259,31 +271,35 @@ function isXML(xml: string): boolean {
  */
 async function getFirmware(infoData: string, category: string, service: string, serviceID: string) {
   // 解析数据, 一般只有一个
+  // Parse data, usually only one
   // 打脸了, 修一下
   const infosRegex = /\<Distribution ID="FW".*MAC="(?<mac>[^"]*)".*URI="(?<url>[^"]*)".*\/\>/g
   let infoMatch: RegExpExecArray | null
   // 循环获取固件信息
+  // Loop to get firmware information
   while ((infoMatch = infosRegex.exec(infoData)) !== null) {
     const { mac, url } = <{ [key: string]: string }>infoMatch.groups
 
     const fileNameRegex = url.match(/\/([^\/]*)\.(\w{3})$/)
     if (fileNameRegex === null) {
-      console.error('解析文件名错误', service, url)
+      console.error('解析文件名错误, Error parsing file name', service, url)
       continue
     }
     const fileName = fileNameRegex[1]
     const extName = fileNameRegex[2]
     // 查找是否已经下载
+    // Find out if it has been downloaded
     if (options.data[serviceID]?.services[service]?.includes(mac)) {
-      console.error('已是最新', service, mac)
+      console.error('已是最新, Already up to date', service, mac)
       continue
     }
     // 是否与其他区域固件相同
+    // Whether it is the same as the firmware in other regions
     else {
       let same = false
       for (const service2 in options.data[serviceID]?.services) {
         if (options.data[serviceID].services[service2].includes(mac)) {
-          console.error(`与 ${service2} 相同`, service, mac)
+          console.error(`与 ${service2} 相同, Same as ${service2}`, service, mac)
           if (!fs.existsSync(`./firmware/${serviceID}/${service}`)) {
             fs.mkdirSync(`./firmware/${serviceID}/${service}`)
           }
@@ -303,14 +319,15 @@ async function getFirmware(infoData: string, category: string, service: string, 
       }
     }
     // 下载固件
+    // Download firmware
     const fw = await webGet(url)
     if (fw === undefined) {
-      console.error('下载固件错误', service, url)
+      console.error('下载固件错误, Error downloading firmware', service, url)
       continue
     }
     const fwSHA1 = crypto.createHash('SHA1').update(fw).digest('hex')
     if (fwSHA1 !== mac) {
-      console.error('固件SHA1错误', service, mac)
+      console.error('固件SHA1错误, Firmware SHA1 error', service, mac)
       continue
     }
     if (!fs.existsSync(`./firmware/${serviceID}/`)) {

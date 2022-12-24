@@ -14,6 +14,7 @@ if (!hasKey || !hasCert) throw '未找到证书文件'
 const FSreadFile = promisify(readFile)
 const FSreaddir = promisify(readdir)
 // 自定义的升级信息
+// Custom upgrade information
 const infoXML = `<?xml version="1.0" encoding="UTF-8"?><InformationFile LastUpdate="2021-05-01T00:00:00Z" Noop="false" Version="1.0">
 <ControlConditions DefaultServiceStatus="open" DefaultVariance="0"/>
 <ApplyConditions>
@@ -35,6 +36,7 @@ const infoXML = `<?xml version="1.0" encoding="UTF-8"?><InformationFile LastUpda
 </ApplyConditions>
 </InformationFile>`
 // 自定义的免责声明
+// Custom disclaimer
 const disclaimerXML = Buffer.from(`<?xml version="1.0" encoding="UTF-8"?> 
 
 <NoticeFile Version="1.0" DefaultLocale="China">
@@ -63,7 +65,7 @@ start()
 
 /**
  * 也可以使用匿名函数
- *
+ * You can also use anonymous functions
  */
 async function start() {
   const select0 = await choose0()
@@ -98,7 +100,7 @@ async function start() {
 }
 /**
  * 简单的cli交互
- *
+ * Simple cli interaction
  * @returns {Promise<string>}
  */
 function choose(): Promise<string> {
@@ -119,6 +121,11 @@ async function choose0(): Promise<string> {
 1. 强制更新固件
 2. 强制切换地区(并不是所有设备都支持)
 3. 强刷自定义固件(非常危险!非常危险!!非常危险!!!)`)
+  console.log(`Please select the function:
+1. Force update firmware
+2. Force switch region(not all devices support)
+3. Force flash custom firmware(very dangerous!very dangerous!!very dangerous!!!)`)
+
   const select = await choose()
   if (['1', '2', '3'].includes(select)) return select
   else return choose0()
@@ -129,13 +136,18 @@ async function choose02(): Promise<string> {
 1. 01(SPLC)
 2. 02(CN)
 3. 03(unknown)`)
+  console.log(`Please select the region:
+0. 00(EN)
+1. 01(SPLC)
+2. 02(CN)
+3. 03(unknown)`)
   const select = await choose()
   if (['0', '1', '2', '3'].includes(select)) return select
   else return choose02()
 }
 async function choose03(): Promise<Buffer> {
   const files = await FSreaddir(`${__dirname}/custom/`)
-  console.log('请选择固件:')
+  console.log('请选择固件, Please select firmware:')
   files.forEach((name, id) => console.log(`${id + 1}. ${name}`))
   const select = await choose()
   const file = files[+select - 1]
@@ -159,19 +171,23 @@ async function startProxy(mode: string, fw?: Buffer) {
       const u = new URL(`https://info.update.sony.net${cReq.url}`)
       console.log('已捕获到', cReq.url)
       // 拦截 info.xml
+      // Intercept info.xml
       if (u.pathname.endsWith('info.xml')) {
         // 提取 categoryID 和 serviceID
+        // Extract categoryID and serviceID
         const pathSplit = u.pathname.match(/\/(?<categoryID>\w{5})\/(?<serviceID>\w{11})\//)
         if (pathSplit === null) nothing()
         else {
           const { categoryID, serviceID } = <{ [key: string]: string }>pathSplit.groups
           if (mode === '1' || mode[0] === '2') {
             // 切换区域
+            // Switch region
             const newServiceID = mode === '1' ? serviceID : `${serviceID.slice(0, -1)}${mode[1]}`
             const XML = await decryptedXML(categoryID, newServiceID)
             if (XML === undefined) nothing()
             else {
               // 替换升级检查条件, 实现强制升级
+              // Replace the upgrade check condition to force the upgrade
               const editedXML = XML.replace(/<Rule Type="System" Key="FirmwareVersion" Value="[\d\.]+" Operator=".+?"\/>/g,
                 '<Rule Type="System" Key="FirmwareVersion" Value="0" Operator="NotEqual"/>')
               const myXML = await encryptedXML(categoryID, serviceID, editedXML)
@@ -180,6 +196,7 @@ async function startProxy(mode: string, fw?: Buffer) {
           }
           else if (mode === '3') {
             // 构建 info.xml
+            // Build info.xml
             const editedXML = infoXML
               .replace('{FWsha1}', getHash('sha1', <Buffer>fw))
               .replace('{FWlength}', (<Buffer>fw).length.toString())
@@ -197,6 +214,7 @@ async function startProxy(mode: string, fw?: Buffer) {
       } else nothing()
       /**
        * 传输自定义文件
+       * Transfer custom file
        *
        * @param {Buffer} data
        * @param {http.OutgoingHttpHeaders} [headers]
@@ -213,6 +231,7 @@ async function startProxy(mode: string, fw?: Buffer) {
       }
       /**
        * 简单代理
+       * Simple proxy
        *
        */
       function nothing() {
@@ -259,6 +278,7 @@ async function startProxy(mode: string, fw?: Buffer) {
 }
 /**
  * 解密 info.xml
+ * Decrypt info.xml
  *
  * @param {string} categoryID
  * @param {string} serviceID
@@ -296,10 +316,13 @@ function decryptedXML(categoryID: string, serviceID: string): Promise<string | u
             }
             else {
               // 分割数据
+              // Split data
               const headerLength = data.indexOf('\n\n')
               // 头部数据
+              // Header data
               const header = data.slice(0, headerLength).toString()
               // 解析头部
+              // Parse header
               const headerSplit = header.match(/eaid:(?<eaid>.*)\ndaid:(?<daid>.*)\ndigest:(?<digest>.*)/)
               if (headerSplit === null) {
                 console.log(header)
@@ -339,6 +362,7 @@ function decryptedXML(categoryID: string, serviceID: string): Promise<string | u
                 return resolve(undefined)
               }
               // xml数据
+              // xml data
               const cryptedData = data.slice(headerLength + 2)
               let keyBuffer: Buffer
               let decryptedData = ''
@@ -351,6 +375,7 @@ function decryptedXML(categoryID: string, serviceID: string): Promise<string | u
                 decryptedData = Buffer.concat([decipher.update(cryptedData), decipher.final()]).toString()
               }
               // 数据校验
+              // Data verification
               if (has !== 'none') {
                 const dataHash = getHash(has, decryptedData)
                 const hash = getHash(has, dataHash + serviceID + categoryID)
@@ -374,6 +399,7 @@ function decryptedXML(categoryID: string, serviceID: string): Promise<string | u
 }
 /**
  * 加密 info.xml
+ * Encrypt info.xml
  *
  * @param {string} categoryID
  * @param {string} serviceID
@@ -383,13 +409,16 @@ function decryptedXML(categoryID: string, serviceID: string): Promise<string | u
 function encryptedXML(categoryID: string, serviceID: string, decryptedData: string): Promise<Buffer> {
   return new Promise(resolve => {
     // 去除原有填充
+    // Remove original padding
     const decryptedDataBuffer = Buffer.from(decryptedData.trimEnd())
     // 使用 ' ' 填充数据
+    // Use ' ' to pad data
     const padBuffer = Buffer.alloc(32 - decryptedDataBuffer.length % 32, ' ')
     const WTFXMLBuffer = padBuffer.length === 32 ? decryptedDataBuffer : Buffer.concat([decryptedDataBuffer, padBuffer])
     const dataHash = getHash('sha1', WTFXMLBuffer)
     const hash = getHash('sha1', dataHash + serviceID + categoryID)
     // 构建头部
+    // Build header
     const headerBuffer = Buffer.from(`eaid:ENC0003
 daid:HAS0003
 digest:${hash}
@@ -405,6 +434,7 @@ digest:${hash}
 }
 /**
  * 计算 hash
+ * Calculate hash
  *
  * @param {string} algorithm
  * @param {(string | Buffer)} data
