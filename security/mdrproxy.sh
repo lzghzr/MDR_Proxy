@@ -8,7 +8,7 @@ cp mdrproxy_key.pem mdrproxy-key.pem
 java -jar apktool.jar d --output Headphones --no-src $1
 # 修改app配置
 # modifying app configuration
-sed 's/android:name="com.sony.songpal.mdr.vim.MdrApplication" android:roundIcon="@mipmap\/icon_round"/android:name="com.sony.songpal.mdr.vim.MdrApplication" android:networkSecurityConfig="@xml\/network_security_config" android:roundIcon="@mipmap\/icon_round"/' -i Headphones/AndroidManifest.xml
+sed 's/android:name="com.sony.songpal.mdr.vim.MdrApplication" /android:name="com.sony.songpal.mdr.vim.MdrApplication" android:networkSecurityConfig="@xml\/network_security_config" /' -i Headphones/AndroidManifest.xml
 # 添加网络安全配置
 # adding network security configuration
 cp network_security_config.xml Headphones/res/xml/network_security_config.xml
