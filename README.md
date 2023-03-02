@@ -25,7 +25,7 @@ The following are some links, if you want to add or remove your content from the
 [酷安](https://www.coolapk.com/feed/35048130)<br />
 [什么值得买](https://post.smzdm.com/p/a997pdz5/)<br />
 [reddit](https://www.reddit.com/r/sony/comments/dpsmsq/wh1000xm3_custom_firmware_flash_mdr_proxy/)<br />
-[荔枝数码](https://www.lizhi.io/blog/62275295)<br />
+[数码荔枝](https://www.lizhi.io/blog/62275295)<br />
 
 ## 附录
 
@@ -57,3 +57,4 @@ The following are some links, if you want to add or remove your content from the
 | WF-L900    | HP002      | [2953](firmware/2953) | ✔️    |
 | WH-1000XM5 | HP002      | [2954](firmware/2954) | ✔️    |
 | INZONE H9  | HP002      | [2959](firmware/2959) | ✔️    |
+| WH-CH720N  | HP002      | [2966](firmware/2966) | ✔️    |
