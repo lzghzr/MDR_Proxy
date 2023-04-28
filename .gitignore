@@ -47,3 +47,4 @@ security/Headphones
 security/*.apk
 security/*.jar
 security/*.pem
+security/*.zip
