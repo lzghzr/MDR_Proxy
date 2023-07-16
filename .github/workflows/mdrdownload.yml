@@ -33,4 +33,5 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add firmware/* mdrdownload.json
-          git diff-index --cached --quiet HEAD -- || (git commit -m "auto download firmware" && git push)
+          updated_service_ids=`git status -s | grep "^A " | awk '{print $2}' | xargs -i sh -c 'basename $(dirname $(dirname {}))' | grep -v "\." | sort -u | sed -z 's/\n/, /g' | sed 's/, $//'`
+          git diff-index --cached --quiet HEAD -- || (git commit -m "Auto download firmware (${updated_service_ids})" && git push)
