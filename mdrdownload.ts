@@ -25,11 +25,11 @@ const LAST = options.lastID === 2853 ? 100 : 10
       await getInfo(options.data[serviceID].category, serviceID)
     }
   }
-  // 扫描新ID, 初次扫描100个, 后续10个
-  // Scan new ID, scan 100 for the first time, and 10 later
+  // 扫描新ID, 初次扫描110个, 后续20个
+  // Scan new ID, scan 110 for the first time, and 20 later
   for (let categoryID = 1; categoryID < 3; categoryID++) {
-    for (let serviceID = MIN; serviceID < MIN + LAST; serviceID++) {
-      if ((categoryID === 1 && serviceID > 2942) || (categoryID === 2 && serviceID < 2943)) {
+    for (let serviceID = MIN - 10; serviceID < MIN + LAST; serviceID++) {
+      if ((categoryID === 1 && serviceID > 2942) || (categoryID === 2 && serviceID < 2943) || serviceID in options.data) {
         continue
       }
       const category = `HP00${categoryID}`
