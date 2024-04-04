@@ -11,13 +11,13 @@ Please place the certificate file in this directory and name it as follows:
 <br />
 
 mdrproxy.sh 可以自动生成证书并放入Headphones app中, 使用方法<br />
-`mdrproxy.sh Headphones.apk`<br />
+`mdrproxy.sh`<br />
 或者不需要自动生成证书<br />
-`mdrproxy_nocert.sh Headphones.apk`<br />
+`mdrproxy.sh nocert`<br />
 The mdrproxy.sh script can automatically generate a certificate and place it in the Headphones app. To use it:<br />
-`mdrproxy.sh Headphones.apk`<br />
+`mdrproxy.sh`<br />
 or do not need to generate a certificate<br />
-`mdrproxy_nocert.sh Headphones.apk`<br />
+`mdrproxy.sh nocert`<br />
 
 使用前请将所需工具一同放置在此目录内并安装[jdk](https://www.oracle.com/java/technologies/downloads/)<br />
 Please place the following tools in this directory and install [jdk](https://www.oracle.com/java/technologies/downloads/) before using them
