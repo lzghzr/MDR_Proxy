@@ -60,3 +60,4 @@ The following are some links, if you want to add or remove your content from the
 | WH-CH720N  | HP002      | [2966](firmware/2966) | ✔️    |
 | WF-1000XM5 | HP002      | [2963](firmware/2963) | ✔️    |
 | WF-C700N   | HP002      | [2968](firmware/2968) | ✔️    |
+| INZONE Buds| HP002      | [2977](firmware/2977) | ✔️    |
