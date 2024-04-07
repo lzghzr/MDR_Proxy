@@ -30,8 +30,8 @@ jobs:
 
       - name: Commit files
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add firmware/* mdrdownload.json
           updated_service_ids=`git status -s | grep "^A " | awk '{print $2}' | xargs -i sh -c 'basename $(dirname $(dirname {}))' | grep -v "\." | sort -u | sed -z 's/\n/, /g' | sed 's/, $//'`
           git diff-index --cached --quiet HEAD -- || (git commit -m "Auto download firmware (${updated_service_ids})" && git push)
