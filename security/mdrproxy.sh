@@ -21,7 +21,7 @@ headphones_version=""
 # 下载 Headphones.apk
 # download Headphones.apk
 if [ ! -f "Headphones.apk" ];then
-  headphones_url=$(curl https://www.sonystyle.com.cn/minisite/cross/app/headphones_connect.htm | sed "s/'/\n/g" | grep "/minisite/cross/app/download/")
+  headphones_url=$(curl -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0" https://www.sonystyle.com.cn/minisite/cross/app/headphones_connect.htm | sed "s/'/\n/g" | grep "/minisite/cross/app/download/")
   headphones_version=$(echo $headphones_url | awk -F[_/] '{ print $NF }' | sed "s/.apk//")
   wget $headphones_url -O Headphones.apk
 fi
