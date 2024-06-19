@@ -1,11 +1,9 @@
-## 说明
-## Description
+## 说明 Description
 
 支持了最新版 headphones 10<br />
 ~~因为涉及到证书导入以及中间人攻击, 为了避免产生纠纷, 不再提供 app 下载~~
 
 **因为咨询人数过多, 所以再次添加 app, 由于涉及到证书导入以及中间人攻击, 使用本程序产生的任何后果, 包括但不限于支付软件被盗, 社交软件乱发信息, 手机被锁等, 本人概不负责**
-
 
 你也可以选择创建属于自己的 app [security](security)
 
@@ -14,11 +12,9 @@ Support for the latest version of headphones 10<br />
 
 **Due to the large number of inquiries, the app has been added again. However, due to certificate import and man-in-the-middle attacks, the author is not responsible for any consequences arising from the use of this program, including but not limited to the theft of payment software, social software sending messages at random, and the locking of phones.**
 
-
 You can also choose to create your own app [security](security)
 
-## 使用
-## Usage
+## 使用 Usage
 
 如果你不理解此程序, 已经有不少人编写了使用说明, 在此表示感谢<br />
 以下为部分链接, 如果你的内容想加入到列表或者想从列表里去除, 请联系我
@@ -32,8 +28,7 @@ The following are some links, if you want to add or remove your content from the
 [reddit](https://www.reddit.com/r/sony/comments/dpsmsq/wh1000xm3_custom_firmware_flash_mdr_proxy/)<br />
 [数码荔枝](https://www.lizhi.io/blog/62275295)<br />
 
-## 附录
-## Appendix
+## 附录 Appendix
 
 | Model      | categoryID | serviceID             | HTTPS |
 | ---------- | ---------- | --------------------- | ----- |
