@@ -53,8 +53,11 @@ The following are some links, if you want to add or remove your content from the
 | WF-1000XM4 | HP002      | [2948](firmware/2948) | ✔️    |
 | WF-LS900N  | HP002      | [2950](firmware/2950) | ✔️    |
 | WH-XB910N  | HP002      | [2951](firmware/2951) | ✔️    |
+| WF-C500    | HP002      | [2952](firmware/2952) | ✔️    |
 | WF-L900    | HP002      | [2953](firmware/2953) | ✔️    |
 | WH-1000XM5 | HP002      | [2954](firmware/2954) | ✔️    |
+| WI-C100    | HP002      | [2957](firmware/2957) | ✔️    |
+| WI-C100    | HP002      | [2958](firmware/2958) | ✔️    |
 | INZONE H9  | HP002      | [2959](firmware/2959) | ✔️    |
 | WH-CH720N  | HP002      | [2966](firmware/2966) | ✔️    |
 | WF-1000XM5 | HP002      | [2963](firmware/2963) | ✔️    |
