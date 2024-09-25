@@ -61,3 +61,4 @@ The following are some links, if you want to add or remove your content from the
 | WF-C700N   | HP002      | [2968](firmware/2968) | ✔️    |
 | INZONE Buds| HP002      | [2977](firmware/2977) | ✔️    |
 | WH-ULT900N | HP002      | [2981](firmware/2981) | ✔️    |
+| WF-C510    | HP002      | [2982](firmware/2982) | ✔️    |
