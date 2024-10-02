@@ -30,38 +30,40 @@ The following are some links, if you want to add or remove your content from the
 
 ## 附录 Appendix
 
-| Model      | categoryID | serviceID             | HTTPS |
-| ---------- | ---------- | --------------------- | ----- |
-| WI-1000X   | HP001      | [2853](firmware/2853) | ❌    |
-| WF-1000X   | HP001      | [2865](firmware/2865) | ❌    |
-| WH-1000XM2 | HP001      | [2892](firmware/2892) | ❌    |
-| WH-H900N   | HP001      | [2893](firmware/2893) | ❌    |
-| WH-CH700N  | HP001      | [2908](firmware/2908) | ❌    |
-| WF-SP700N  | HP001      | [2911](firmware/2911) | ❌    |
-| WI-SP600N  | HP001      | [2912](firmware/2912) | ❌    |
-| WH-1000XM3 | HP001      | [2916](firmware/2916) | ❌    |
-| WI-C600N   | HP001      | [2924](firmware/2924) | ❌    |
-| WI-1000XM2 | HP001      | [2928](firmware/2928) | ❌    |
-| WH-XB900N  | HP001      | [2929](firmware/2929) | ❌    |
-| WH-XB700   | HP001      | [2930](firmware/2930) | ❌    |
-| WF-1000XM3 | HP001      | [2931](firmware/2931) | ❌    |
-| WH-H910N   | HP001      | [2940](firmware/2940) | ❌    |
-| WH-H810    | HP001      | [2941](firmware/2941) | ❌    |
-| WF-H800    | HP001      | [2942](firmware/2942) | ❌    |
-| WH-1000XM4 | HP002      | [2943](firmware/2943) | ✔️    |
-| WF-SP800N  | HP002      | [2946](firmware/2946) | ✔️    |
-| WF-1000XM4 | HP002      | [2948](firmware/2948) | ✔️    |
-| WF-LS900N  | HP002      | [2950](firmware/2950) | ✔️    |
-| WH-XB910N  | HP002      | [2951](firmware/2951) | ✔️    |
-| WF-C500    | HP002      | [2952](firmware/2952) | ✔️    |
-| WF-L900    | HP002      | [2953](firmware/2953) | ✔️    |
-| WH-1000XM5 | HP002      | [2954](firmware/2954) | ✔️    |
-| WI-C100    | HP002      | [2957](firmware/2957) | ✔️    |
-| WH-CH520   | HP002      | [2958](firmware/2958) | ✔️    |
-| INZONE H9  | HP002      | [2959](firmware/2959) | ✔️    |
-| WH-CH720N  | HP002      | [2966](firmware/2966) | ✔️    |
-| WF-1000XM5 | HP002      | [2963](firmware/2963) | ✔️    |
-| WF-C700N   | HP002      | [2968](firmware/2968) | ✔️    |
-| INZONE Buds| HP002      | [2977](firmware/2977) | ✔️    |
-| WH-ULT900N | HP002      | [2981](firmware/2981) | ✔️    |
-| WF-C510    | HP002      | [2982](firmware/2982) | ✔️    |
+| Model         | categoryID | serviceID             | HTTPS |
+| ----------    | ---------- | --------------------- | ----- |
+| WI-1000X      | HP001      | [2853](firmware/2853) | ❌    |
+| WF-1000X      | HP001      | [2865](firmware/2865) | ❌    |
+| WH-1000XM2    | HP001      | [2892](firmware/2892) | ❌    |
+| WH-H900N      | HP001      | [2893](firmware/2893) | ❌    |
+| WH-CH700N     | HP001      | [2908](firmware/2908) | ❌    |
+| WF-SP700N     | HP001      | [2911](firmware/2911) | ❌    |
+| WI-SP600N     | HP001      | [2912](firmware/2912) | ❌    |
+| WH-1000XM3    | HP001      | [2916](firmware/2916) | ❌    |
+| WI-C600N      | HP001      | [2924](firmware/2924) | ❌    |
+| WI-1000XM2    | HP001      | [2928](firmware/2928) | ❌    |
+| WH-XB900N     | HP001      | [2929](firmware/2929) | ❌    |
+| WH-XB700      | HP001      | [2930](firmware/2930) | ❌    |
+| WF-1000XM3    | HP001      | [2931](firmware/2931) | ❌    |
+| WH-H910N      | HP001      | [2940](firmware/2940) | ❌    |
+| WH-H810       | HP001      | [2941](firmware/2941) | ❌    |
+| WF-H800       | HP001      | [2942](firmware/2942) | ❌    |
+| WH-1000XM4    | HP002      | [2943](firmware/2943) | ✔️    |
+| WF-SP800N     | HP002      | [2946](firmware/2946) | ✔️    |
+| WF-1000XM4    | HP002      | [2948](firmware/2948) | ✔️    |
+| WF-LS900N     | HP002      | [2950](firmware/2950) | ✔️    |
+| WH-XB910N     | HP002      | [2951](firmware/2951) | ✔️    |
+| WF-C500       | HP002      | [2952](firmware/2952) | ✔️    |
+| WF-L900       | HP002      | [2953](firmware/2953) | ✔️    |
+| WH-1000XM5    | HP002      | [2954](firmware/2954) | ✔️    |
+| WI-C100       | HP002      | [2957](firmware/2957) | ✔️    |
+| WH-CH520      | HP002      | [2958](firmware/2958) | ✔️    |
+| INZONE H9     | HP002      | [2959](firmware/2959) | ✔️    |
+| WH-CH720N     | HP002      | [2966](firmware/2966) | ✔️    |
+| WF-1000XM5    | HP002      | [2963](firmware/2963) | ✔️    |
+| Linkbuds Open | HP002      | [2964](firmware/2964) | ✔️    |
+| WF-C700N      | HP002      | [2968](firmware/2968) | ✔️    |
+| Linkbuds Fit  | HP002      | [2975](firmware/2975) | ✔️    |
+| INZONE Buds   | HP002      | [2977](firmware/2977) | ✔️    |
+| WH-ULT900N    | HP002      | [2981](firmware/2981) | ✔️    |
+| WF-C510       | HP002      | [2982](firmware/2982) | ✔️    |
