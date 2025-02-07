@@ -1,3 +1,4 @@
+#!/bin/bash
 if [ -z `command -v curl` ] || [ -z `command -v jq` ] || [ -z `command -v wget` ] || [ -z `command -v openssl` ] || [ -z `command -v java` ]; then
   echo "请安装 curl, jq, wget, openssl, java"
   echo "please install curl, jq, wget, openssl, java"
