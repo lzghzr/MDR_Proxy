@@ -447,13 +447,16 @@
       "category": "HP002",
       "services": {
         "MDRID296400": [
-          "e089a2e349556d0b86f1159677b6d2d55fdecadf"
+          "e089a2e349556d0b86f1159677b6d2d55fdecadf",
+          "934e0f3d430bd8f627c13c2fecbb9cb81b395a63"
         ],
         "MDRID296403": [
-          "e089a2e349556d0b86f1159677b6d2d55fdecadf"
+          "e089a2e349556d0b86f1159677b6d2d55fdecadf",
+          "934e0f3d430bd8f627c13c2fecbb9cb81b395a63"
         ],
         "MDRID296402": [
-          "e089a2e349556d0b86f1159677b6d2d55fdecadf"
+          "e089a2e349556d0b86f1159677b6d2d55fdecadf",
+          "934e0f3d430bd8f627c13c2fecbb9cb81b395a63"
         ]
       }
     },
@@ -532,13 +535,16 @@
       "category": "HP002",
       "services": {
         "MDRID298200": [
-          "9043113abd59702a67c3586bed7fda5569629617"
+          "9043113abd59702a67c3586bed7fda5569629617",
+          "dcf95e6d860c66f384f02444a9d6dcb889a074cb"
         ],
         "MDRID298203": [
-          "9043113abd59702a67c3586bed7fda5569629617"
+          "9043113abd59702a67c3586bed7fda5569629617",
+          "dcf95e6d860c66f384f02444a9d6dcb889a074cb"
         ],
         "MDRID298202": [
-          "9043113abd59702a67c3586bed7fda5569629617"
+          "9043113abd59702a67c3586bed7fda5569629617",
+          "dcf95e6d860c66f384f02444a9d6dcb889a074cb"
         ]
       }
     },
