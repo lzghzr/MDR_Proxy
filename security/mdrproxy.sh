@@ -1,7 +1,7 @@
 #!/bin/bash
-if [ -z `command -v curl` ] || [ -z `command -v jq` ] || [ -z `command -v wget` ] || [ -z `command -v openssl` ] || [ -z `command -v java` ]; then
-  echo "请安装 curl, jq, wget, openssl, java"
-  echo "please install curl, jq, wget, openssl, java"
+if [ -z `command -v curl` ] || [ -z `command -v jq` ] || [ -z `command -v wget` ] || [ -z `command -v openssl` ] || [ -z `command -v java` ] || [ -z `command -v zip` ]; then
+  echo "请安装 curl, jq, wget, openssl, java, zip"
+  echo "please install curl, jq, wget, openssl, java, zip"
   exit 127
 fi
 # 下载 apktool.jar
@@ -49,12 +49,14 @@ java -jar apktool.jar b --force-all --output SoundConnect_new.apk SoundConnect
 # 签名
 # signing
 java -jar uber-apk-signer.jar -a SoundConnect_new.apk
-# 重命名
-# rename
+# 重命名&zip
+# rename&zip
 if [ -z "$soundconnect_version" ];then
   mv SoundConnect_new-aligned-debugSigned.apk SoundConnect_unknow_unsafe.apk
+  zip SoundConnect_unknow_unsafe.zip SoundConnect_unknow_unsafe.apk mdrproxy-key.pem mdrproxy-cert.pem
 else
   mv SoundConnect_new-aligned-debugSigned.apk SoundConnect_${soundconnect_version}_unsafe.apk
+  zip SoundConnect_${soundconnect_version}_unsafe.zip SoundConnect_${soundconnect_version}_unsafe.apk mdrproxy-key.pem mdrproxy-cert.pem
 fi
 # 清除临时文件
 # clean
