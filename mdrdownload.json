@@ -501,13 +501,16 @@
       "category": "HP002",
       "services": {
         "MDRID297500": [
-          "4cb855442c3b13ae84d6e7a322b80e77ca7c92b5"
+          "4cb855442c3b13ae84d6e7a322b80e77ca7c92b5",
+          "550f312760a7a77983c23831cef17ffb5915c69c"
         ],
         "MDRID297503": [
-          "4cb855442c3b13ae84d6e7a322b80e77ca7c92b5"
+          "4cb855442c3b13ae84d6e7a322b80e77ca7c92b5",
+          "550f312760a7a77983c23831cef17ffb5915c69c"
         ],
         "MDRID297502": [
-          "4cb855442c3b13ae84d6e7a322b80e77ca7c92b5"
+          "4cb855442c3b13ae84d6e7a322b80e77ca7c92b5",
+          "550f312760a7a77983c23831cef17ffb5915c69c"
         ]
       }
     },
