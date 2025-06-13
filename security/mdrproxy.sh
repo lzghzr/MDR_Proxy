@@ -23,7 +23,7 @@ soundconnect_version=""
 # download SoundConnect.apk
 if [ ! -f "SoundConnect.apk" ];then
   soundconnect_url=$(curl -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0" https://www.sonystyle.com.cn/minisite/cross/appcenter/pa/sound_connect/index.html | sed "s/\"/\n/g" | grep "/minisite/cross/app/download/")
-  soundconnect_version=$(echo $soundconnect_url | awk -F[t_/] '{ print $NF }' | sed "s/.apk//")
+  soundconnect_version=$(echo $soundconnect_url | awk -Ft_v '{ print $NF }' | sed "s/.apk//")
   wget $soundconnect_url -O SoundConnect.apk
 fi
 # 生成证书
