@@ -1,13 +1,13 @@
 ## 说明 Description
 
-支持了最新版 SoundConnect 11<br />
+支持了最新版 SoundConnect 12<br />
 ~~因为涉及到证书导入以及中间人攻击, 为了避免产生纠纷, 不再提供 app 下载~~
 
 **因为咨询人数过多, 所以再次添加 app, 由于涉及到证书导入以及中间人攻击, 使用本程序产生的任何后果, 包括但不限于支付软件被盗, 社交软件乱发信息, 手机被锁等, 本人概不负责**
 
 你也可以选择创建属于自己的 app [security](security)
 
-Support for the latest version of SoundConnect 11<br />
+Support for the latest version of SoundConnect 12<br />
 ~~Due to certificate import and man-in-the-middle attacks, to avoid disputes, the app is no longer available for download~~
 
 **Due to the large number of inquiries, the app has been added again. However, due to certificate import and man-in-the-middle attacks, the author is not responsible for any consequences arising from the use of this program, including but not limited to the theft of payment software, social software sending messages at random, and the locking of phones.**
@@ -26,7 +26,6 @@ The following are some links, if you want to add or remove your content from the
 [酷安](https://www.coolapk.com/feed/35048130)<br />
 [什么值得买](https://post.smzdm.com/p/a997pdz5/)<br />
 [reddit](https://www.reddit.com/r/sony/comments/dpsmsq/wh1000xm3_custom_firmware_flash_mdr_proxy/)<br />
-[数码荔枝](https://www.lizhi.io/blog/62275295)<br />
 
 ## 附录 Appendix
 
