@@ -33,7 +33,7 @@ if [ "$1" != "nocert" ];then
 fi
 # 解包app
 # unpacking app
-java -jar apktool.jar d --force-all --output SoundConnect --no-src SoundConnect.apk
+java -jar apktool.jar d --force --output SoundConnect --no-src SoundConnect.apk
 # 修改app配置
 # modifying app configuration
 sed 's/android:name="com.sony.songpal.mdr.vim.MdrApplication" /android:name="com.sony.songpal.mdr.vim.MdrApplication" android:networkSecurityConfig="@xml\/network_security_config" /' -i SoundConnect/AndroidManifest.xml
@@ -45,7 +45,7 @@ cp network_security_config.xml SoundConnect/res/xml/network_security_config.xml
 cp mdrproxy-cert.pem SoundConnect/res/raw/mdrproxy_ca.pem
 # 重新打包
 # repacking app
-java -jar apktool.jar b --force-all --output SoundConnect_new.apk SoundConnect
+java -jar apktool.jar b --force --output SoundConnect_new.apk SoundConnect
 # 签名
 # signing
 java -jar uber-apk-signer.jar -a SoundConnect_new.apk
