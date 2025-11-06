@@ -64,6 +64,7 @@ The following are some links, if you want to add or remove your content from the
 | WF-C700N      | HP002      | [2968](firmware/2968) | ✔️    |
 | Linkbuds Fit  | HP002      | [2975](firmware/2975) | ✔️    |
 | INZONE Buds   | HP002      | [2977](firmware/2977) | ✔️    |
-| WH-ULT900N    | HP002      | [2981](firmware/2981) | ✔️    |
+| ULT WEAR      | HP002      | [2981](firmware/2981) | ✔️    |
 | WF-C510       | HP002      | [2982](firmware/2982) | ✔️    |
 | WH-1000XM6    | HP002      | [2984](firmware/2984) | ✔️    |
+| INZONE KBD-H75| HP002      | [2992](firmware/2992) | ✔️    |
