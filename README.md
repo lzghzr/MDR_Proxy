@@ -70,5 +70,7 @@ The following are some links, if you want to add or remove your content from the
 | WF-1000XM6    | HP002      | [2985](firmware/2985) | ✔️    |
 | WF-C710N      | HP002      | [2986](firmware/2986) | ✔️    |
 | INZONE H9 II  | HP002      | [2987](firmware/2987) | ✔️    |
+| INZONE Mouse-A| HP002      | [2991](firmware/2991) | ✔️    |
 | INZONE KBD-H75| HP002      | [2992](firmware/2992) | ✔️    |
+| INZONE Mouse-A| HP002      | [2994](firmware/2994) | ✔️    |
 | LinkBuds Clip | HP002      | [2999](firmware/2999) | ✔️    |
