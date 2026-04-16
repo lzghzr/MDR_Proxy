@@ -7,7 +7,7 @@ fi
 # 下载 apktool.jar
 # download apktool.jar
 if [ ! -f "apktool.jar" ];then
-  apktool_url=$(curl 'https://api.github.com/repos/iBotPeaches/Apktool/releases/latest' | jq -r '.assets[] | select(.content_type == "application/java-archive") | .browser_download_url')
+  apktool_url=$(curl 'https://api.github.com/repos/iBotPeaches/Apktool/releases/tags/v2.12.0' | jq -r '.assets[] | select(.content_type == "application/java-archive") | .browser_download_url')
   wget $apktool_url -O "apktool.jar"
 fi
 # 下载 uber-apk-signer.jar
