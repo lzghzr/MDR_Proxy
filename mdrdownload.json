@@ -751,7 +751,18 @@
           "2900829f4e04f9474d675ffdd7b19aa38652d6fc"
         ]
       }
+    },
+    "3006": {
+      "category": "HP002",
+      "services": {
+        "MDRID300600": [
+          "4b314665c65694ba77fae9dc00e4b61f85fdfb07"
+        ],
+        "MDRID300603": [
+          "e5281c1f047ccdbafc5115fb32527635b696a7b5"
+        ]
+      }
     }
   },
-  "lastID": 2999
+  "lastID": 3006
 }
