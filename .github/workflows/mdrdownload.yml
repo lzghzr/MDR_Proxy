@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron:  '0 8 * * *'
+    - cron: '0 8 * * *'
+    - cron: '17 8 5 * *'
 
 jobs:
   download:
@@ -24,14 +25,31 @@ jobs:
 
       - name: Build
         run: npm run build
-      
+
       - name: Download
+        env:
+          MDR_SCAN_IDS: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '17 8 5 * *' }}
         run: npm run download
 
       - name: Commit files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add firmware/* mdrdownload.json
-          updated_service_ids=`git status -s | grep "^A " | awk '{print $2}' | xargs -i sh -c 'basename $(dirname $(dirname {}))' | grep -v "\." | sort -u | sed -z 's/\n/, /g' | sed 's/, $//'`
-          git diff-index --cached --quiet HEAD -- || (git commit -m "Auto download firmware (${updated_service_ids})" && git push)
+          git add firmware mdrdownload.json
+          updated_service_ids=$(
+            git status --short -- firmware |
+            awk '$1 == "A" { split($2, parts, "/"); print parts[2] }' |
+            sort -u |
+            paste -sd ',' - |
+            sed 's/,/, /g'
+          )
+          if git diff-index --cached --quiet HEAD --; then
+            exit 0
+          fi
+          if [ -n "$updated_service_ids" ]; then
+            commit_message="Auto download firmware (${updated_service_ids})"
+          else
+            commit_message="Update firmware scan state"
+          fi
+          git commit -m "$commit_message"
+          git push

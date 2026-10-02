@@ -13,30 +13,96 @@ if (!fs.existsSync('./firmware/')) {
 }
 
 const options: Options = JSON.parse(fs.readFileSync('./mdrdownload.json').toString())
+options.data ??= {}
+options.scanMax = Math.max(options.scanMax ?? options.lastID, options.lastID)
+const initialKnownIDCount = Object.keys(options.data).length
 
-const MIN = options.lastID
-const LAST = options.lastID === 2853 ? 100 : 10
+const SCAN_STEP = 100
+const scanIDs = process.env.MDR_SCAN_IDS !== 'false'
+/**
+ * 服务器访问限制
+ * Server access restriction
+ *
+ */
+class AccessRestrictionError extends Error {
+  constructor(readonly statusCode: 403 | 429) {
+    super(`Sony server returned HTTP ${statusCode}`)
+    this.name = 'AccessRestrictionError'
+  }
+}
+
+const requestStats: Record<RequestType, RequestStats> = {
+  info: createRequestStats(),
+  firmware: createRequestStats()
+}
+let knownIDsChecked = 0
+let historicalGapsChecked = 0
+let newIDsProbed = 0
+const previousScanMax = options.scanMax
   ;
 (async () => {
   // 更新最新固件
   // Update the latest firmware
-  if (options.data !== undefined) {
-    for (const serviceID in options.data) {
-      await getInfo(options.data[serviceID].category, serviceID)
-    }
+  for (const serviceID in options.data) {
+    knownIDsChecked++
+    await getInfo(options.data[serviceID].category, serviceID)
   }
-  // 扫描新ID, 初次扫描110个, 后续20个
-  // Scan new ID, scan 110 for the first time, and 20 later
-  for (let categoryID = 1; categoryID < 3; categoryID++) {
-    for (let serviceID = MIN - 10; serviceID < MIN + LAST; serviceID++) {
-      if ((categoryID === 1 && serviceID > 2942) || (categoryID === 2 && serviceID < 2943) || serviceID in options.data) {
-        continue
-      }
-      const category = `HP00${categoryID}`
-      await getInfo(category, serviceID.toString())
-    }
+
+  // 每日任务只更新已知ID的固件
+  // Daily runs only update firmware for known IDs
+  if (!scanIDs) {
+    saveOptions()
+    writeSummary()
+    return
   }
-})()
+
+  const knownIDs = Object.keys(options.data).map(Number)
+  const minKnownID = knownIDs.length > 0 ? Math.min(...knownIDs) : options.lastID
+
+  // 补扫历史缺失ID
+  // Recheck missing historical IDs
+  for (let serviceID = minKnownID; serviceID <= previousScanMax; serviceID++) {
+    if (serviceID in options.data) {
+      continue
+    }
+    historicalGapsChecked++
+    await getInfo(getCategory(serviceID), serviceID.toString())
+  }
+
+  // 扫描新的100个ID, 全部完成后再推进扫描上界
+  // Scan the next 100 IDs and advance the boundary after completing the scan
+  const targetScanMax = previousScanMax + SCAN_STEP
+  for (let serviceID = previousScanMax + 1; serviceID <= targetScanMax; serviceID++) {
+    if (serviceID in options.data) {
+      continue
+    }
+    newIDsProbed++
+    await getInfo(getCategory(serviceID), serviceID.toString())
+  }
+
+  options.scanMax = targetScanMax
+  saveOptions()
+  writeSummary()
+})().catch((error: unknown) => {
+  writeSummary(error)
+  console.error(error instanceof Error ? error.message : error)
+  process.exitCode = 1
+})
+/**
+ * 获取产品类别
+ * Get the product category
+ *
+ * @param {number} serviceID
+ * @returns {string}
+ */
+function getCategory(serviceID: number): string {
+  if (serviceID <= 2942) {
+    return 'HP001'
+  }
+  else {
+    return 'HP002'
+  }
+}
 /**
  * 保存mdrdownload.json
  *
@@ -45,13 +111,131 @@ function saveOptions() {
   fs.writeFileSync('./mdrdownload.json', JSON.stringify(options, undefined, 2))
 }
 /**
+ * 初始化请求统计
+ * Initialize request statistics
+ *
+ * @returns {RequestStats}
+ */
+function createRequestStats(): RequestStats {
+  return {
+    total: 0,
+    counts: { '200': 0, '404': 0, '403': 0, '429': 0, '5xx': 0, other: 0, network: 0 }
+  }
+}
+/**
+ * 统计请求结果
+ * Record the request result
+ *
+ * @param {RequestType} requestType
+ * @param {number} [statusCode]
+ */
+function recordRequest(requestType: RequestType, statusCode?: number): void {
+  const stats = requestStats[requestType]
+  stats.total++
+  if (statusCode === undefined) {
+    stats.counts.network++
+  }
+  else if (statusCode === 200 || statusCode === 404 || statusCode === 403 || statusCode === 429) {
+    stats.counts[<StatusBucket>statusCode.toString()]++
+  }
+  else if (statusCode >= 500 && statusCode <= 599) {
+    stats.counts['5xx']++
+  }
+  else {
+    stats.counts.other++
+  }
+}
+/**
+ * 输出运行摘要
+ * Write the run summary
+ *
+ * @param {unknown} [error]
+ */
+function writeSummary(error?: unknown): void {
+  const output: string[] = [
+    '## MDR Firmware Scan',
+    '',
+    `Mode: ${scanIDs ? 'Firmware updates and ID scan' : 'Firmware updates'}`,
+    `Known service IDs: ${initialKnownIDCount} → ${Object.keys(options.data).length}`,
+    `Known IDs checked: ${knownIDsChecked}`,
+    `Historical gaps checked: ${historicalGapsChecked}`,
+    `New IDs probed: ${newIDsProbed}`,
+    '',
+    'Scan boundary:',
+    `${previousScanMax} → ${options.scanMax}`,
+    '',
+    '| Request | Total | 200 | 404 | 403 | 429 | 5xx | Other | Network |',
+    '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
+    formatStatsRow('info'),
+    formatStatsRow('firmware'),
+    ''
+  ]
+  if (error instanceof AccessRestrictionError) {
+    output.push(`Result: ❌ Sony server returned HTTP ${error.statusCode}.`, 'Scan stopped and scanMax was not advanced.')
+  }
+  else if (error !== undefined) {
+    output.push(`Result: ❌ Scan failed: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  else if (hasTransientErrors()) {
+    output.push('Result: ⚠️ Scan completed with transient server/network errors.', 'Missing IDs will be retried on the next run.')
+  }
+  else {
+    output.push('Result: ✅ Sony server reachable; no access restriction detected.')
+  }
+
+  const summaryPath = process.env.GITHUB_STEP_SUMMARY
+  if (summaryPath) {
+    fs.appendFileSync(summaryPath, `${output.join('\n')}\n`)
+  }
+  else {
+    console.log(output.join('\n'))
+  }
+}
+/**
+ * 格式化请求统计
+ * Format request statistics
+ *
+ * @param {RequestType} requestType
+ * @returns {string}
+ */
+function formatStatsRow(requestType: RequestType): string {
+  const stats = requestStats[requestType]
+  const label = requestType === 'info' ? 'info.xml' : 'firmware'
+  return `| ${label} | ${stats.total} | ${stats.counts['200']} | ${stats.counts['404']} | ${stats.counts['403']} | ${stats.counts['429']} | ${stats.counts['5xx']} | ${stats.counts.other} | ${stats.counts.network} |`
+}
+/**
+ * 检查服务器或网络错误
+ * Check for server or network errors
+ *
+ * @returns {boolean}
+ */
+function hasTransientErrors(): boolean {
+  for (const requestType in requestStats) {
+    const counts = requestStats[<RequestType>requestType].counts
+    if (counts['5xx'] > 0 || counts.other > 0 || counts.network > 0) {
+      return true
+    }
+  }
+  return false
+}
+/**
  * webGet
  *
  * @param {string} url
- * @returns {(Promise<Buffer | undefined>)}
+ * @param {RequestType} requestType
+ * @returns {Promise<WebResult>}
  */
-function webGet(url: string): Promise<Buffer | undefined> {
-  return new Promise<Buffer | undefined>((resolve, _reject) => {
+function webGet(url: string, requestType: RequestType): Promise<WebResult> {
+  return new Promise<WebResult>(resolve => {
+    let completed = false
+    const finish = (result: WebResult): void => {
+      if (completed) {
+        return
+      }
+      completed = true
+      recordRequest(requestType, result.statusCode)
+      resolve(result)
+    }
     let web: typeof https | typeof http
     if (url.startsWith('https')) {
       web = https
@@ -82,21 +266,14 @@ function webGet(url: string): Promise<Buffer | undefined> {
         cRes
           .on('data', (chunk: Buffer) => rawData.push(chunk))
           .on('end', () => {
-            const data = Buffer.concat(rawData)
-            if (res.statusCode !== 200) {
-              console.error('服务器错误, Server error', res.statusCode, data.toString())
-              resolve(undefined)
-            }
-            resolve(data)
+            finish({ statusCode: res.statusCode, data: Buffer.concat(rawData) })
           })
-          .on('error', e => {
-            console.error('数据接收错误, Data receiving error', e)
-            resolve(undefined)
+          .on('error', () => {
+            finish({})
           })
       })
-      .on('error', e => {
-        console.error('请求错误, Request error', e)
-        resolve(undefined)
+      .on('error', () => {
+        finish({})
       })
   })
 }
@@ -111,9 +288,12 @@ async function getInfo(category: string, serviceID: string) {
   // Currently only MDRID 0-3 is observed
   for (let i = 0; i <= 3; i++) {
     const service = `MDRID${serviceID}0${i}`
-    const data = await webGet(`https://info.update.sony.net/${category}/${service}/info/info.xml`)
+    const response = await webGet(`https://info.update.sony.net/${category}/${service}/info/info.xml`, 'info')
+    if (response.statusCode === 403 || response.statusCode === 429) {
+      throw new AccessRestrictionError(response.statusCode)
+    }
+    const data = response.statusCode === 200 ? response.data : undefined
     if (data === undefined) {
-      console.error('数据获取错误, Error getting data', category, service)
       continue
     }
     // 分割数据
@@ -320,9 +500,12 @@ async function getFirmware(infoData: string, category: string, service: string, 
     }
     // 下载固件
     // Download firmware
-    const fw = await webGet(url)
+    const response = await webGet(url, 'firmware')
+    if (response.statusCode === 403 || response.statusCode === 429) {
+      throw new AccessRestrictionError(response.statusCode)
+    }
+    const fw = response.statusCode === 200 ? response.data : undefined
     if (fw === undefined) {
-      console.error('下载固件错误, Error downloading firmware', service, url)
       continue
     }
     const fwSHA1 = crypto.createHash('SHA1').update(fw).digest('hex')
@@ -338,7 +521,7 @@ async function getFirmware(infoData: string, category: string, service: string, 
     }
     fs.writeFileSync(`./firmware/${serviceID}/${service}/${fileName}.${mac}.${extName}`, fw)
     if (options.data[serviceID] === undefined) {
-      const lastID = parseInt(service.substring(5, 9))
+      const lastID = parseInt(serviceID)
       if (lastID > options.lastID) {
         options.lastID = lastID
       }
@@ -355,8 +538,19 @@ async function getFirmware(infoData: string, category: string, service: string, 
   saveOptions()
 }
 
+type RequestType = 'info' | 'firmware'
+type StatusBucket = '200' | '404' | '403' | '429' | '5xx' | 'other' | 'network'
+interface WebResult {
+  statusCode?: number
+  data?: Buffer
+}
+interface RequestStats {
+  total: number
+  counts: Record<StatusBucket, number>
+}
 interface Options {
   lastID: number
+  scanMax?: number
   data: OptionsData
 }
 interface OptionsData {

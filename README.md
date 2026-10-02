@@ -75,3 +75,5 @@ The following are some links, if you want to add or remove your content from the
 | INZONE Mouse-A        | HP002      | [2994](firmware/2994) | ✔️    |
 | 1000X THE COLLEXION   | HP002      | [2998](firmware/2998) | ✔️    |
 | LinkBuds Clip         | HP002      | [2999](firmware/2999) | ✔️    |
+| WH-CH730N / WH-CH735N | HP002      | [3006](firmware/3006) | ✔️    |
+| WH-1000XM4C           | HP002      | [3013](firmware/3013) | ✔️    |
