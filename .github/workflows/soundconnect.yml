@@ -1,0 +1,145 @@
+name: Release SoundConnect
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild and upload even if this version is already released
+        type: boolean
+        default: false
+
+  schedule:
+    - cron: '0 9 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: soundconnect-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 版本号取自官网页面(与 security/mdrproxy.sh 一致), 该版本已在 release 里则跳过
+      - name: Check new version
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url=$(curl -s -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0" https://www.sonystyle.com.cn/minisite/cross/appcenter/pa/sound_connect/index.html | sed 's/"/\n/g' | grep "/minisite/cross/app/download/" || true)
+          version=$(echo $url | awk -Ft_v '{ print $NF }' | sed "s/.apk//")
+          echo "SoundConnect version: ${version}"
+          if [ -n "$version" ] && [ "${{ inputs.force }}" != "true" ]; then
+            tag="SoundConnect_${version%%.*}"
+            if gh release view "$tag" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "SoundConnect_${version}_unsafe.zip"; then
+              echo "${tag} 已包含 ${version}, 跳过"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Build
+        if: steps.check.outputs.skip != 'true'
+        working-directory: security
+        run: bash mdrproxy.sh
+
+      # 由产物名反推版本/大版本/标签, 并判断是追加资产还是新建 release
+      - name: Decide upload mode
+        id: mode
+        if: steps.check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          zip=$(ls -1 security/SoundConnect_*_unsafe.zip 2>/dev/null | head -1 || true)
+          if [ -z "$zip" ]; then
+            echo "没有生成 SoundConnect_*_unsafe.zip"
+            exit 1
+          fi
+          zip=${zip#security/}
+          version=${zip#SoundConnect_}
+          version=${version%_unsafe.zip}
+          major=${version%%.*}
+          tag="SoundConnect_${major}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            create=false
+          else
+            create=true
+          fi
+          echo "### ${zip}" >> "$GITHUB_STEP_SUMMARY"
+          echo "sha256: $(sha256sum "security/${zip}" | awk '{ print $1 }')" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "zip=${zip}"
+            echo "tag=${tag}"
+            echo "major=${major}"
+            echo "create=${create}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK zip
+        if: steps.check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          zip="${{ steps.mode.outputs.zip }}"
+          tag="${{ steps.mode.outputs.tag }}"
+          if [ "${{ steps.mode.outputs.create }}" = "true" ]; then
+            cat > notes.md <<'EOF'
+          使用 `SoundConnect_*_unsafe.zip` 时请将
+          ```
+          mdrproxy-key.pem
+          mdrproxy-cert.pem
+          ```
+          放入 `security` 目录
+          <br />
+          <br />
+          When using `SoundConnect_*_unsafe.zip` , please place the following files:
+          ```
+          mdrproxy-key.pem
+          mdrproxy-cert.pem
+          ```
+          into the `security` directory.
+          EOF
+            gh release create "$tag" "security/$zip" --title "SoundConnect ${{ steps.mode.outputs.major }}" --target master --prerelease --notes-file notes.md
+          elif ! gh release view "$tag" --json assets --jq '.assets[].name' | grep -qx "$zip"; then
+            gh release upload "$tag" "security/$zip"
+          fi
+
+      # 新大版本时顺带做一份工具包, 内含当时最新的 node LTS
+      - uses: actions/setup-node@v4
+        if: steps.mode.outputs.create == 'true'
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Build MDR_Proxy.zip
+        id: tools
+        if: steps.mode.outputs.create == 'true'
+        continue-on-error: true
+        run: |
+          npm install
+          npm run build
+          node_ver=$(curl -s https://nodejs.org/dist/index.json | jq -r '[.[] | select(.lts != false)][0].version')
+          echo "node LTS: ${node_ver}"
+          curl -sLO "https://nodejs.org/dist/${node_ver}/node-${node_ver}-win-x64.zip"
+          unzip -o -j "node-${node_ver}-win-x64.zip" "node-${node_ver}-win-x64/node.exe"
+          rm -f "node-${node_ver}-win-x64.zip"
+          printf 'node.exe mdrproxy.js\npause' > run.cmd
+          zip -rq MDR_Proxy.zip custom LICENSE mdr.js mdrdownload.js mdrdownload.json mdrproxy.js node.exe README.md run.cmd security/README.md security/info.update.sony.net.conf security/mdrproxy.sh security/network_security_config.xml
+          if unzip -l MDR_Proxy.zip | grep -q '\.pem'; then
+            echo "MDR_Proxy.zip 里不应包含 pem"
+            exit 1
+          fi
+
+      - name: Upload MDR_Proxy.zip
+        if: steps.mode.outputs.create == 'true' && steps.tools.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.mode.outputs.tag }}"
+          if ! gh release view "$tag" --json assets --jq '.assets[].name' | grep -qx MDR_Proxy.zip; then
+            gh release upload "$tag" MDR_Proxy.zip
+          fi

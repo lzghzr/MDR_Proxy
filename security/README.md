@@ -24,8 +24,8 @@ Please place the following tools in this directory and install [jdk](https://www
 
 apk反编译所需工具<br />
 >[uber-apk-signer.jar](https://github.com/patrickfav/uber-apk-signer) <br />
->[apktool.jar](https://github.com/iBotPeaches/Apktool)<br />
+>[APKEditor.jar](https://github.com/REAndroid/APKEditor)<br />
 
 Tools required for apk decompilation<br />
 >[uber-apk-signer.jar](https://github.com/patrickfav/uber-apk-signer) <br />
->[apktool.jar](https://github.com/iBotPeaches/Apktool)
+>[APKEditor.jar](https://github.com/REAndroid/APKEditor)
