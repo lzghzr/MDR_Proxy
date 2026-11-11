@@ -770,7 +770,8 @@
       "category": "HP002",
       "services": {
         "MDRID301300": [
-          "3e8e9bf91b055bc2b8cee960e3d225f6feb0b11b"
+          "3e8e9bf91b055bc2b8cee960e3d225f6feb0b11b",
+          "9536e3586dbf3486e7c9ba25ac1e694a4532ee8a"
         ]
       }
     }
